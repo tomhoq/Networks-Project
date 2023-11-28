@@ -11,24 +11,23 @@
 #define PORT "58150"
 #define TEJO "tejo.tecnico.ulisboa.pt"
 
+#define LOGIN 0
 
 
-void login(char *token);
+int login(char username[20], char pass[20]);
 void exit_program();
+int communicate_udp(int type, char arg1[20], char arg2[20]);
 
 int main (int argc, char* argv[]) {
     
-    int fd, errcode, n;
-    ssize_t n;
-    socklen_t addrlen;
-    struct addrinfo hints, *res;
-    struct sockaddr_in addr;
-    char buffer[128];
+    int n;
+    char buffer[128], username[6];
+    char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
+    int n, i;
 
     char ASIP[16]; // n tenho a certeza se 16 é o suficiente
     char ASport[6];
 
-    char userId[7];
 
     if (argc == 1) {
         strcpy(ASIP, "localhost");
@@ -69,53 +68,57 @@ int main (int argc, char* argv[]) {
 
     while (1) {
         fgets(buffer, 128, stdin);
-        char *token = strtok(buffer, " ");
+        n = sscanf(buffer, "%s %s %s %s %s", function, arg1, arg2, arg3, arg4);
+        printf("function: %s\n", function);
 
-        if (strcmp(token, "exit\n") == 0) {
+        if (strcmp(function, "exit\n") == 0) {
             printf("entered exit");
-            exit_program(userId);
+            exit_program(username);
             exit(0);
         }
-        else if (strcmp(buffer, "login") == 0) {
+        else if (strcmp(function, "login") == 0) {
             printf("entered login");
-            login(token);
+            i = login(arg1, arg2);
+            if (i==1)
+                strncpy(username, arg1, 6);
+                
             break;
         }
-        else if (strcmp(buffer, "logout") == 0) {
+        else if (strcmp(function, "logout") == 0) {
             printf("entered logout");
             logout();
             break;
         }
-        else if (strcmp(buffer, "unregister\n") == 0) {
+        else if (strcmp(function, "unregister\n") == 0) {
             printf("entered unregister");
             unregister();
             break;
         }
-        else if (strcmp(buffer, "open") == 0) {
+        else if (strcmp(function, "open") == 0) {
             printf("entered open");
             open(token);
             break;
         }
-        else if (strcmp(buffer, "close") == 0) {
+        else if (strcmp(function, "close") == 0) {
             printf("entered close");
             close(token);
             break;
         }
-        else if (strcmp(buffer, "list\n") == 0 || strcmp(buffer,"l\n") == 0) {
+        else if (strcmp(function, "list\n") == 0 || strcmp(function,"l\n") == 0) {
             printf("entered list");
             list();
         }
-        else if (strcmp(buffer, "myauctions\n") == 0 || strcmp(buffer,"ma\n") == 0) {
+        else if (strcmp(function, "myauctions\n") == 0 || strcmp(function,"ma\n") == 0) {
             printf("entered myauctions");
             myauctions();
             break;
         }
-        else if (strcmp(buffer, "mybids\n") == 0 || strcmp(buffer,"mb\n") == 0) {
+        else if (strcmp(function, "mybids\n") == 0 || strcmp(function,"mb\n") == 0) {
             printf("entered mybids");
             mybids();
             break;
         }
-        else if (strcmp(buffer, "show_asset") == 0 || strcmp(buffer,"sa") == 0) {
+        else if (strcmp(function, "show_asset") == 0 || strcmp(function,"sa") == 0) {
             printf("entered show_asset");
             show_asset(token);
             break;
@@ -138,7 +141,58 @@ int main (int argc, char* argv[]) {
     
 
 
+
+}
+
+int login(char username[20], char pass[20]) {
+        if (strlen(username) != 6) {
+            printf("Username must have 6 characters.\n");
+            return -1;
+        }
+        else {
+            for (int i = 0; i < 6; i++) {
+                if (!isdigit(username[i])) {
+                    printf("Invalid username. Must contain only digits.\n");
+                return -1;
+                }
+            } 
+        }
+        if (strlen(pass) != 8) {
+            printf("Password must have 8 characters.\n");
+            return -1;
+        }
+        else {
+            for (int i = 0; i < 8; i++) {
+                if (!isalnum(pass[i])) {
+                    printf("Invalid pass. Must contain only alphanumeric characters.\n");
+                    return -1;
+
+                }
+            } 
+        }
+        //open UDP socket to AS and send LIN UID password;
+        communicate_udp(LOGIN, username, pass);
+
+        return 1;
+}
+
+void exit_program(char username[7]) {
+    if (username != NULL) {
+        exit(0);
+    } else {
+        printf("Please log out before exiting.\n");
+    }
+}
+
+int communicate_udp(int type, char arg1[20], char arg2[20]){
+    int fd, errcode, n;
+    ssize_t n;
+    socklen_t addrlen;
+    struct addrinfo hints, *res;
+    struct sockaddr_in addr;
+    char buffer[128];
     fd = socket(AF_INET, SOCK_STREAM, 0);
+    printf("openincg socket UDP\n");
     if(fd == -1) exit(1);
 
     memset(&hints, 0, sizeof(hints));
@@ -162,58 +216,5 @@ int main (int argc, char* argv[]) {
 
     freeaddrinfo(res);
     close(fd);
+    return 1
 }
-
-void login(char *token) {
-    char username[7];
-    char password[9];
-
-    token = strtok(NULL, " ");
-    printf("token user: %s\n", token);
-
-    if (strlen(token) != 6) {
-        if (!strcmp(token + 6, "\n")) {
-            printf("Password can't be NULL\n");
-            return;
-        }
-        else {
-            printf("Username must have 6 characters.\n");
-            return;
-        }   
-    }
-    else {
-        for (int i = 0; i < 6; i++) {
-            if (!isdigit(token[i])) {
-                printf("Invalid username. Must contain only digits.\n");
-                return;
-            }
-        } 
-    }
-    strcpy(username, token);
-
-    token = strtok(NULL, " ");
-    printf("token pass: %s\n", token);
-    if (strlen(token) -1 != 8) {
-        printf("Password must have 8 characters.\n");
-        return;
-    }
-    else {
-        for (int i = 0; i < 8; i++) {
-            if (!isalnum(token[i])) {
-                printf("Invalid pass. Must contain only digits.\n");
-                return;
-        }
-    } 
-    }
-    strcpy(password, token);
-    printf("username: %s\n", username);
-    printf("password: %s\n", password);
-
-    //open UDP socket to AS and send LIN UID password
-
-}
-
-void exit_program(char userId[7]) {
-    if (userId != NULL) {
-        exit(0);
-    }
