@@ -54,7 +54,7 @@ int main() {
             printf("entered exit\n");
             exit(0);
         }
-        else if (strcmp(function, "login") == 0 && n == 3) {
+        else if (strcmp(function, "login") == 0 && n >= 3) {
             login(arg1, arg2);
             strncpy(username, arg1, 6);
             printf("username: %s\n", username);
