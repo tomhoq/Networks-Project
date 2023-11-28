@@ -95,6 +95,7 @@ int main (int argc, char* argv[]) {
         }
         else if (strcmp(function, "login") == 0) {
             i = login(arg1, arg2, ASIP, ASport);
+
             if (i==1)
                 strncpy(username, arg1, 6);
             printf("username: %s\n", username);
@@ -103,6 +104,8 @@ int main (int argc, char* argv[]) {
         else if (strcmp(function, "logout") == 0) {
             printf("entered logout");
             //logout();
+            //set username as row of \0
+            memset(username, '\0', sizeof(username));
         }
         else if (strcmp(function, "unregister\n") == 0) {
             printf("entered unregister");
@@ -185,7 +188,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
 }
 
 void exit_program(char username[6]) {
-    if (username[0] != '\0') {
+    if (username[0] == '\0') {
         printf("Logging out...\n");
         exit(0);
     } else {
