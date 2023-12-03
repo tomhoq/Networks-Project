@@ -12,6 +12,7 @@
 #define TEJO "tejo.tecnico.ulisboa.pt"
 
 #define LOGIN 0
+#define LOGOUT 1
 
 void print_all_characters(const char *input_string) {
     while (*input_string != '\0') {
@@ -21,13 +22,14 @@ void print_all_characters(const char *input_string) {
 }
 
 int login(char username[20], char pass[20], char ASIP[16], char ASport[6]);
+int logout(char username[20], char password[20], char ASIP[16], char ASport[6]);
 void exit_program(char username[6]);
-int communicate_udp(int type, char arg1[20], char arg2[20], char ASIP[16], char ASport[6]);
+int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]);
 
 int main (int argc, char* argv[]) {
     
-    int n, i;
-    char buffer[128], username[7];
+    int n;
+    char buffer[128], username[7],password[9];
     char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
 
     char ASIP[16]; // n tenho a certeza se 16 é o suficiente
@@ -35,6 +37,7 @@ int main (int argc, char* argv[]) {
 
     //set username as row of \0
     memset(username, '\0', sizeof(username));
+    memset(password, '\0', sizeof(password));
 
     //input processing
     if (argc == 1) {
@@ -88,24 +91,39 @@ int main (int argc, char* argv[]) {
         fgets(buffer, 128, stdin);
         
         n = sscanf(buffer, "%s %s %s %s %s", function, arg1, arg2, arg3, arg4);
-        printf("function: %s\n, arg1: %s\n, arg2: %s\n", function, arg1, arg2);
+        printf("function: %s, arg1: %s, arg2: %s\n", function, arg1, arg2);
+
+        //ignore just to avoid warning
+        if (n == 0) {}
 
         if (strcmp(function, "exit") == 0) {
             exit_program(username);
         }
         else if (strcmp(function, "login") == 0) {
-            i = login(arg1, arg2, ASIP, ASport);
+            if (username[0] != '\0') {
+                printf("You are already logged in. Stop.\n");
+                continue;
+            }
 
-            if (i==1)
+            if (login(arg1, arg2, ASIP, ASport) == 1){
                 strncpy(username, arg1, 6);
-            printf("username: %s\n", username);
-                
+                strncpy(password, arg2, 8);
+            }
+
         }
         else if (strcmp(function, "logout") == 0) {
-            printf("entered logout");
-            //logout();
-            //set username as row of \0
-            memset(username, '\0', sizeof(username));
+            if (username[0] == '\0') {
+                printf("You are not logged in. Stop.\n");
+                continue;
+            }
+            if (logout(username, password, ASIP, ASport) ==-1){
+                printf("Error logging out\n");
+            }
+            else {
+                memset(username, '\0', sizeof(username));
+                memset(password, '\0', sizeof(password));
+            }
+
         }
         else if (strcmp(function, "unregister\n") == 0) {
             printf("entered unregister");
@@ -179,30 +197,52 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
             } 
         }
 
-    
+
+        char message[50]; 
+
+        //IMPORTANTE: Nao esquecer \0, todas as strings tem de ter  um \0 no final
+        memset(message, '\0', sizeof(message));
+        snprintf(message, sizeof(message), "LIN %s %s\n", username, password);
+
         //open UDP socket to AS and send LIN UID password;
-        communicate_udp(LOGIN, username, password, ASIP, ASport);
+        communicate_udp(LOGIN, message, ASIP, ASport);
         
 
         return 1;
 }
 
+int logout(char username[20], char password[20], char ASIP[16], char ASport[6]) {
+
+    char message[50]; 
+
+    memset(message, '\0', sizeof(message));
+
+    snprintf(message, sizeof(message), "LOU %s %s\n", username, password);
+
+    //open UDP socket to AS and send LOU UID password;
+    communicate_udp(LOGOUT, message, ASIP, ASport);
+
+    return 1;
+}
+
 void exit_program(char username[6]) {
     if (username[0] == '\0') {
-        printf("Logging out...\n");
+        printf("Exiting...\n");
         exit(0);
     } else {
         printf("Please log out before exiting.\n");
     }
 }
 
-int communicate_udp(int type, char arg1[20], char arg2[20], char ASIP[16], char ASport[6]) {
+int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
     int fd, errcode;
     ssize_t n;
     socklen_t addrlen;
     struct addrinfo hints, *res;
     struct sockaddr_in addr;
-    char buffer[128] = "";
+    char buffer[128];
+
+    memset(buffer, '\0', sizeof(buffer));
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if(fd == -1){
@@ -213,9 +253,10 @@ int communicate_udp(int type, char arg1[20], char arg2[20], char ASIP[16], char 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET; // IPv4
     hints.ai_socktype = SOCK_DGRAM; // UDP
-
+    /*
     printf("ASIP: %s\n", ASIP);
     printf("ASport: %s\n", ASport);
+    */
     
 
     //DEPOIS ALTERAR IP E PORT PARA ASIP E ASport !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -224,38 +265,66 @@ int communicate_udp(int type, char arg1[20], char arg2[20], char ASIP[16], char 
         printf("Error getaddrinfo\n");
         exit(1);
     }
-    char message[50]; 
-
-    //IMPORTANTE: Nao esquecer \0, todas as strings tem de ter  um \0 no final
-    memset(message, '\0', sizeof(message));
-
-    if  (type == LOGIN) {
-        snprintf(message, sizeof(message), "LIN %s %s\n", arg1, arg2);
-    }
-    else {
-        printf("TYPE NOT DEFINED\n");
-        return -1;
-    }
-
 
     n = sendto(fd, message, 20, 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");
         exit(1);
     }
-    printf("sent to socket\n");
+    //printf("sent to socket\n");
 
     addrlen = sizeof(addr);
     n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *) &addr, &addrlen);
-    printf("received from socket\n");
+    //printf("received from socket\n");
     if(n == -1) {
         printf("Error receviving from socket\n");
         exit(1);
     }
 
-    printf("answer: %s\n", buffer);
+    printf("%s\n", buffer);
     freeaddrinfo(res);
     close(fd);
+
+    switch(type) {
+        case LOGIN:
+            if (strcmp(buffer, "RLI OK\n") == 0) {
+                printf("Login successful\n");
+                return 1;
+            }
+            else if (strcmp(buffer, "RLI REG\n") == 0) {
+                printf("Registered user\n");
+                return 1;
+            }
+            else if (strcmp(buffer, "RLI NOK\n") == 0) {
+                printf("Login unsuccessful\n");
+                return -1;
+            }
+            else {
+                printf("Error receiving answer from AS\n");
+                return -1;
+            }
+            break;
+        case LOGOUT:
+            if (strcmp(buffer, "RLO OK\n") == 0) {
+                printf("Logout successful\n");
+                return 1;
+            }
+            else if (strcmp(buffer, "RLO NOK\n") == 0) {
+                printf("Logout unsuccessful\n");
+                return -1;
+            }
+            else if (strcmp(buffer, "RLI UNR\n") == 0) {
+                printf("Unregistered user\n");
+                return -1;
+            }
+            else {
+                printf("Error receiving answer from AS\n");
+                return -1;
+            }
+        default:
+            printf("Invalid type\n");
+            return -1;
+    }
 
     return 1;
 }
