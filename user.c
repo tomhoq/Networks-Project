@@ -16,7 +16,6 @@
 #define LOGOUT 1
 #define UNREGISTER 2
 #define LIST 3
-#define MA 4
 
 void print_all_characters(const char *input_string) {
     int i= 1;
@@ -295,7 +294,7 @@ int myauctions(char username[7], char ASIP[16], char ASport[6]) {
     snprintf(message, sizeof(message), "LMA %s\n", username);
 
     //open UDP socket to AS and send LOU UID password;
-    if (communicate_udp(MA, message, ASIP, ASport) == -1) {
+    if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
         return -1;
     }
 
@@ -317,7 +316,9 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     socklen_t addrlen;
     struct addrinfo hints, *res;
     struct sockaddr_in addr;
-    char buffer[128];
+    char buffer[300];  //este valor não vai funcionar no futuro, para o comando list o server pode 
+    //devolver ate 6000 bytes, e nao faz sentido estarmos a definir um buffer[6000] pelo que vamos ter 
+    //ler do recvfrom em loop ate nao haver mais nada para ler, vamos ter q usar memoria dinamica 
 
     if(ASIP == NULL || ASport == NULL) {
         printf("Invalid ASIP or ASport\n");
@@ -369,6 +370,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     close(fd);
 
     char arg1[4], arg2[4];
+    char AID[4], activ[2];
     char *arg3 = NULL; 
 
     switch(type) {
@@ -424,39 +426,58 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 printf("Error receiving answer from AS\n");
                 return -1;
             }
-        case LIST:
-            arg3 = (char *)calloc(strlen(buffer) + 1, sizeof(char));
-            sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);
+        case LIST:    // This case attends both LST and LMA commands!
+            arg3 = (char *)malloc((strlen(buffer)-5)*sizeof(char));
 
-            if (strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) {
-                printf("%s\n", arg3);
-                
-                arg3 = realloc(arg3, strlen(arg3) + 2);
-                printf("realloc\n");
-                if (arg3 != NULL) {
-                    printf("%s\n", arg3);
+            int n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);
 
-                    free(arg3);
-                    return 1;
-                } else {
+            //printing lists for LST and LMA
+            if ((strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) || (
+             strcmp(arg1, "RMA") == 0 && strcmp(arg2, "OK") == 0)) 
+            {
+                if (n != 3) {
+                    printf("Reading list failed\n");
+                    free(arg3);  // Free the original memory before exiting
+                    return -1;
+                }
+                if (arg3 == NULL) {
                     // Handle realloc failure
-                    printf("Memory reallocation failed for arg3\n");
+                    printf("Memory reallocation failed for list\n");
                     free(arg3);  // Free the original memory before exiting
                     return -1;    // Return an error code
+                } else {
+                    //printf("%s, %d\n", arg3, strlen(arg3));
+                    char *answer = (char *)malloc(strlen(arg3)*sizeof(char));
+                    char toAdd[30];
+                    int show = 0; //variable to keep track if there is at least one active auction
+                    
+                    memset(toAdd, '\0', sizeof(toAdd));
+
+                    //in this loop im storing all the auctions in the variable answer
+                    while(sscanf(arg3, "%s %s %[^\n]", AID, activ, arg3) == 3) {
+                        answer = (char *)realloc(answer, strlen(answer) + strlen("Auction number 111: inactive\n") + 1);
+
+                        snprintf(toAdd, strlen("Auction number 111: inactive\n") + 1, "Auction number %s: %s\n", AID, (activ[0] == '1' ? "active" : "inactive"));
+                        
+                        strcat(answer, toAdd);
+                        memset(toAdd, '\0', sizeof(toAdd));
+
+                        if (activ[0] == '1')
+                            show = 1;
+                    }
+                    // only printing the auctions if there is at least one active
+                    if (show == 1)
+                        printf("%s", answer);
+
+                    free(answer);
+                    free(arg3);
+                    return 1;
                 }
+                
             }
             else if (strcmp(buffer, "RLS NOK\n") == 0) {
                 printf("List unsuccessful. No active auctions.\n");
                 return -1;
-            }
-            else {
-                printf("Error receiving answer from AS\n");
-                return -1;
-            }
-        case MA:
-            if (strcmp(buffer, "RMA OK\n") == 0) {
-                printf("List successful\n");
-                return 1;
             }
             else if (strcmp(buffer, "RMA NOK\n") == 0) {
                 printf("List unsuccessful. You don't have any active auctions.\n");
@@ -470,6 +491,8 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 printf("Error receiving answer from AS\n");
                 return -1;
             }
+            
+
         
         default:
             printf("Invalid type\n");
