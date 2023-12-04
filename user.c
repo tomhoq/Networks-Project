@@ -429,7 +429,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
         case LIST:    // This case attends both LST and LMA commands!
             arg3 = (char *)malloc((strlen(buffer)-5)*sizeof(char));
 
-            int n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);
+            int n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
 
             //printing lists for LST and LMA
             if ((strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) || (
