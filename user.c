@@ -18,9 +18,11 @@
 #define LIST 3
 
 void print_all_characters(const char *input_string) {
+    int i= 1;
     while (*input_string != '\0') {
-        printf("Character: %c, ASCII: %d\n", *input_string, *input_string);
+        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
         input_string++;
+        i++;
     }
 }
 
@@ -217,7 +219,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
         }
 
 
-        char message[50]; 
+        char message[25]; 
 
         //IMPORTANTE: Nao esquecer \0, todas as strings tem de ter  um \0 no final
         memset(message, '\0', sizeof(message));
@@ -233,7 +235,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
 
 int logout(char username[20], char password[20], char ASIP[16], char ASport[6]) {
 
-    char message[50]; 
+    char message[25]; 
 
     memset(message, '\0', sizeof(message));
 
@@ -249,7 +251,7 @@ int logout(char username[20], char password[20], char ASIP[16], char ASport[6]) 
 
 int unregister(char username[20], char password[20], char ASIP[16], char ASport[6]) {
 
-    char message[50]; 
+    char message[25]; 
 
     memset(message, '\0', sizeof(message));
 
@@ -265,13 +267,11 @@ int unregister(char username[20], char password[20], char ASIP[16], char ASport[
 
 int myauctions(char username[20], char ASIP[16], char ASport[6]) {
 
-    char message[50]; 
+    char message[25]; 
 
     memset(message, '\0', sizeof(message));
 
     snprintf(message, sizeof(message), "LMA %s\n", username);
-
-    print_all_characters(message);
 
     //open UDP socket to AS and send LOU UID password;
     if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
@@ -290,7 +290,7 @@ void exit_program(char username[6]) {
     }
 }
 
-int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
+int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     int fd, errcode;
     ssize_t n;
     socklen_t addrlen;
@@ -308,7 +308,7 @@ int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if(fd == -1){
         printf("Error opening socket\n");
-        exit(1);
+        return -1;
     }
 
     memset(&hints, 0, sizeof(hints));
@@ -319,7 +319,6 @@ int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
     printf("ASport: %s\n", ASport);
     */
     
-
     //DEPOIS ALTERAR IP E PORT PARA ASIP E ASport !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     errcode = getaddrinfo(TEJO, "58011", &hints, &res);
     if(errcode != 0) {
@@ -327,7 +326,9 @@ int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
         return -1;
     }
 
-    n = sendto(fd, message, 20, 0, res->ai_addr, res->ai_addrlen);
+    print_all_characters(message);
+    printf("%d\n", strlen(message));
+    n = sendto(fd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");
         return -1;
@@ -399,6 +400,24 @@ int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
                 printf("Error receiving answer from AS\n");
                 return -1;
             }
+        case MA:
+            if (strcmp(buffer, "RMS OK\n") == 0) {
+                printf("List successful\n");
+                return 1;
+            }
+            else if (strcmp(buffer, "RMS NOK\n") == 0) {
+                printf("List unsuccessful. You don't have any active auctions.\n");
+                return -1;
+            }
+            else if (strcmp(buffer, "RLS NLG\n") == 0) {
+                printf("List unsuccessful. You are not logged in.\n");
+                return -1;
+            }
+            else {
+                printf("Error receiving answer from AS\n");
+                return -1;
+            }
+        
         default:
             printf("Invalid type\n");
             return -1;
