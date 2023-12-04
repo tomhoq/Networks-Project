@@ -1,7 +1,7 @@
 # Makefile for compiling user.c
 
 CC = gcc  # The compiler to be used
-CFLAGS = -Wall -Wextra -std=c11  # Compilation flags
+CFLAGS = -Wall -Wextra  # Compilation flags
 
 TARGET = user  # Name of the final executable
 

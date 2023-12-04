@@ -15,6 +15,7 @@
 #define LOGIN 0
 #define LOGOUT 1
 #define UNREGISTER 2
+#define LIST 3
 
 void print_all_characters(const char *input_string) {
     while (*input_string != '\0') {
@@ -26,6 +27,7 @@ void print_all_characters(const char *input_string) {
 int login(char username[20], char pass[20], char ASIP[16], char ASport[6]);
 int logout(char username[20], char password[20], char ASIP[16], char ASport[6]);
 int unregister(char username[20], char password[20], char ASIP[16], char ASport[6]);
+int myauctions(char username[20], char ASIP[16], char ASport[6]);
 void exit_program(char username[6]);
 int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]);
 
@@ -94,7 +96,7 @@ int main (int argc, char* argv[]) {
         fgets(buffer, 128, stdin);
         
         n = sscanf(buffer, "%s %s %s %s %s", function, arg1, arg2, arg3, arg4);
-        printf("function: %s, arg1: %s, arg2: %s\n", function, arg1, arg2);
+        //printf("function: %s, arg1: %s, arg2: %s\n", function, arg1, arg2);
 
         //ignore just to avoid warning
         if (n == 0) {}
@@ -150,12 +152,17 @@ int main (int argc, char* argv[]) {
             //close(token);
         }
         else if (strcmp(function, "list") == 0 || strcmp(function,"l") == 0) {
-            printf("entered list");
-            //list();
+
         }
         else if (strcmp(function, "myauctions") == 0 || strcmp(function,"ma") == 0) {
-            printf("entered myauctions");
-            //myauctions();
+            if (username[0] == '\0') {
+                printf("You are not logged in. Stop.\n");
+                continue;
+            }
+            if (myauctions(username, ASIP, ASport) == -1) {
+                printf("Error getting auctions\n");
+                continue;
+            }
         }
         else if (strcmp(function, "mybids") == 0 || strcmp(function,"mb") == 0) {
             printf("entered mybids");
@@ -256,6 +263,24 @@ int unregister(char username[20], char password[20], char ASIP[16], char ASport[
     return 1;
 }
 
+int myauctions(char username[20], char ASIP[16], char ASport[6]) {
+
+    char message[50]; 
+
+    memset(message, '\0', sizeof(message));
+
+    snprintf(message, sizeof(message), "LMA %s\n", username);
+
+    print_all_characters(message);
+
+    //open UDP socket to AS and send LOU UID password;
+    if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
+        return -1;
+    }
+
+    return 1;
+}
+
 void exit_program(char username[6]) {
     if (username[0] == '\0') {
         printf("Exiting...\n");
@@ -272,6 +297,11 @@ int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]) {
     struct addrinfo hints, *res;
     struct sockaddr_in addr;
     char buffer[128];
+
+    if(ASIP == NULL || ASport == NULL) {
+        printf("Invalid ASIP or ASport\n");
+        return -1;
+    }
 
     memset(buffer, '\0', sizeof(buffer));
 
