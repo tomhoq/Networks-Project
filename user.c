@@ -16,6 +16,7 @@
 #define LOGOUT 1
 #define UNREGISTER 2
 #define LIST 3
+#define MA 4
 
 void print_all_characters(const char *input_string) {
     int i= 1;
@@ -27,11 +28,12 @@ void print_all_characters(const char *input_string) {
 }
 
 int login(char username[20], char pass[20], char ASIP[16], char ASport[6]);
-int logout(char username[20], char password[20], char ASIP[16], char ASport[6]);
-int unregister(char username[20], char password[20], char ASIP[16], char ASport[6]);
-int myauctions(char username[20], char ASIP[16], char ASport[6]);
+int logout(char username[7], char password[9], char ASIP[16], char ASport[6]);
+int unregister(char username[7], char password[9], char ASIP[16], char ASport[6]);
+int list_(char ASIP[16], char ASport[6]);
+int myauctions(char username[7], char ASIP[16], char ASport[6]);
 void exit_program(char username[6]);
-int communicate_udp(int type, char message[50], char ASIP[16], char ASport[6]);
+int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]);
 
 int main (int argc, char* argv[]) {
     
@@ -154,7 +156,10 @@ int main (int argc, char* argv[]) {
             //close(token);
         }
         else if (strcmp(function, "list") == 0 || strcmp(function,"l") == 0) {
-
+            if(list_(ASIP, ASport) == -1) {
+                printf("Error getting list\n");
+                continue;
+            }
         }
         else if (strcmp(function, "myauctions") == 0 || strcmp(function,"ma") == 0) {
             if (username[0] == '\0') {
@@ -233,7 +238,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
         return 1;
 }
 
-int logout(char username[20], char password[20], char ASIP[16], char ASport[6]) {
+int logout(char username[7], char password[9], char ASIP[16], char ASport[6]) {
 
     char message[25]; 
 
@@ -249,7 +254,7 @@ int logout(char username[20], char password[20], char ASIP[16], char ASport[6]) 
     return 1;
 }
 
-int unregister(char username[20], char password[20], char ASIP[16], char ASport[6]) {
+int unregister(char username[7], char password[9], char ASIP[16], char ASport[6]) {
 
     char message[25]; 
 
@@ -265,7 +270,23 @@ int unregister(char username[20], char password[20], char ASIP[16], char ASport[
     return 1;
 }
 
-int myauctions(char username[20], char ASIP[16], char ASport[6]) {
+int list_(char ASIP[16], char ASport[6]) {
+
+    char message[25]; 
+
+    memset(message, '\0', sizeof(message));
+
+    snprintf(message, sizeof(message), "LST\n");
+
+    //open UDP socket to AS and send LOU UID password;
+    if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
+        return -1;
+    }
+
+    return 1;
+}
+
+int myauctions(char username[7], char ASIP[16], char ASport[6]) {
 
     char message[25]; 
 
@@ -274,7 +295,7 @@ int myauctions(char username[20], char ASIP[16], char ASport[6]) {
     snprintf(message, sizeof(message), "LMA %s\n", username);
 
     //open UDP socket to AS and send LOU UID password;
-    if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
+    if (communicate_udp(MA, message, ASIP, ASport) == -1) {
         return -1;
     }
 
@@ -326,8 +347,8 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
         return -1;
     }
 
-    print_all_characters(message);
-    printf("%d\n", strlen(message));
+    //print_all_characters(message);
+    //printf("%d\n", strlen(message));
     n = sendto(fd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");
@@ -346,6 +367,9 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     printf("%s\n", buffer);
     freeaddrinfo(res);
     close(fd);
+
+    char arg1[4], arg2[4];
+    char *arg3 = NULL; 
 
     switch(type) {
         case LOGIN:
@@ -400,16 +424,45 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 printf("Error receiving answer from AS\n");
                 return -1;
             }
+        case LIST:
+            arg3 = (char *)calloc(strlen(buffer) + 1, sizeof(char));
+            sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);
+
+            if (strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) {
+                printf("%s\n", arg3);
+                
+                arg3 = realloc(arg3, strlen(arg3) + 2);
+                printf("realloc\n");
+                if (arg3 != NULL) {
+                    printf("%s\n", arg3);
+
+                    free(arg3);
+                    return 1;
+                } else {
+                    // Handle realloc failure
+                    printf("Memory reallocation failed for arg3\n");
+                    free(arg3);  // Free the original memory before exiting
+                    return -1;    // Return an error code
+                }
+            }
+            else if (strcmp(buffer, "RLS NOK\n") == 0) {
+                printf("List unsuccessful. No active auctions.\n");
+                return -1;
+            }
+            else {
+                printf("Error receiving answer from AS\n");
+                return -1;
+            }
         case MA:
-            if (strcmp(buffer, "RMS OK\n") == 0) {
+            if (strcmp(buffer, "RMA OK\n") == 0) {
                 printf("List successful\n");
                 return 1;
             }
-            else if (strcmp(buffer, "RMS NOK\n") == 0) {
+            else if (strcmp(buffer, "RMA NOK\n") == 0) {
                 printf("List unsuccessful. You don't have any active auctions.\n");
                 return -1;
             }
-            else if (strcmp(buffer, "RLS NLG\n") == 0) {
+            else if (strcmp(buffer, "RMA NLG\n") == 0) {
                 printf("List unsuccessful. You are not logged in.\n");
                 return -1;
             }
