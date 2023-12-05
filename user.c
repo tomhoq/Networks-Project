@@ -16,6 +16,7 @@
 #define LOGOUT 1
 #define UNREGISTER 2
 #define LIST 3
+#define SHOW_RECORD 4
 
 void print_all_characters(const char *input_string) {
     int i= 1;
@@ -32,6 +33,7 @@ int unregister(char username[7], char password[9], char ASIP[16], char ASport[6]
 int list_(char ASIP[16], char ASport[6]);
 int myauctions(char username[7], char ASIP[16], char ASport[6]);
 int mybids(char username[7], char ASIP[16], char ASport[6]);
+int show_record(char AID[7], char ASIP[16], char ASport[6]);
 void exit_program(char username[6]);
 int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]);
 
@@ -177,7 +179,7 @@ int main (int argc, char* argv[]) {
                 continue;
             }
             if (mybids(username, ASIP, ASport) == -1) {
-                printf("Error getting auctions where you have bid\n");
+                printf("Error getting auctions\n");
                 continue;
             }
         }
@@ -185,13 +187,19 @@ int main (int argc, char* argv[]) {
             printf("entered show_asset");
             //show_asset(token);
         }
-        else if (strcmp(buffer, "bid") == 0 || strcmp(buffer,"b") == 0) {
+        else if (strcmp(function, "bid") == 0 || strcmp(function,"b") == 0) {
             printf("entered bid");
             //bid(token);
         }
-        else if (strcmp(buffer, "show_record") == 0 || strcmp(buffer,"sr") == 0) {
-            printf("entered show_record");
-            //show_record(token);
+        else if ((strcmp(function, "show_record") == 0 || strcmp(function,"sr") == 0)) {
+            if (n == 2){
+                if (show_record(arg1, ASIP, ASport) == -1) {
+                    printf("Error showing record of auction\n");
+                    continue;
+                }
+            }
+            else
+                printf("You must specify an Auction ID\n");
         }
         else {
             printf("Invalid command\n");
@@ -316,11 +324,37 @@ int mybids(char username[7], char ASIP[16], char ASport[6]) {
 
     snprintf(message, sizeof(message), "LMB %s\n", username);
 
-    //open UDP socket to AS and send LOU UID password;
+    //open UDP socket to AS and send RMB UID;
     if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
         return -1;
     }
 
+    return 1;
+}
+
+int show_record(char AID[7], char ASIP[16], char ASport[6]) {
+    if (strlen(AID) != 3) {
+        printf("Auction ID must have 3 characters.\n");
+        return -1;
+    }
+    for (int i = 0; i < 3; i++) {
+        if (!isdigit(AID[i])) {
+            printf("Invalid AID. Must contain only digits.\n");
+            return -1;
+        }
+    } 
+
+    char message[25]; 
+
+    memset(message, '\0', sizeof(message));
+
+    snprintf(message, sizeof(message), "SRC %s\n", AID);
+
+    //open UDP socket to AS and send SRC AID;
+    if (communicate_udp(SHOW_RECORD, message, ASIP, ASport) == -1) {
+        return -1;
+    }
+    
     return 1;
 }
 
@@ -395,9 +429,8 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     freeaddrinfo(res);
     close(fd);
 
-    char arg1[4], arg2[4];
-    char AID[4], activ[2];
     char *arg3 = NULL; 
+    char AID[4];
 
     switch(type) {
         case LOGIN:
@@ -454,8 +487,9 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
             }
         case LIST:    // This case attends both LST and LMA commands!
             arg3 = (char *)malloc((strlen(buffer)-5)*sizeof(char));
-
-            int n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
+            char arg1[4], arg2[4];
+            char activ[2];
+            n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
 
             //printing lists for LST and LMA
             if ((strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) || (    // list
@@ -474,32 +508,17 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                     return -1;    // Return an error code
                 } else {
                     //printf("%s, %d\n", arg3, strlen(arg3));
-                    char *answer = (char *)malloc(strlen(arg3)*sizeof(char));
-                    char toAdd[30];
-                    int n;
-                    memset(toAdd, '\0', sizeof(toAdd));
 
                     //in this loop im storing all the auctions in the variable answer
                     while((n = sscanf(arg3, "%s %s %[^\n]", AID, activ, arg3)) == 3) { 
-                        answer = (char *)realloc(answer, strlen(answer) + strlen("Auction number 111: inactive\n") + 1);
-
-                        snprintf(toAdd, strlen("Auction number 111: inactive\n") + 1, "Auction number %s: %s\n", AID, (activ[0] == '1' ? "active" : "inactive"));
-                        
-                        strcat(answer, toAdd);
-                        memset(toAdd, '\0', sizeof(toAdd));
+                        printf("Auction %s: %s\n", AID, (activ[0] == '1' ? "Active" : "Inactive"));
                     }
 
                     //last time 
-                    if (n != 0){
-                        printf("n: %d\n", n);
-                        answer = (char *)realloc(answer, strlen(answer) + strlen("Auction number 111: inactive\n") + 1);
-                        snprintf(toAdd, strlen("Auction number 111: inactive\n") + 1, "Auction number %s: %s\n", AID, (activ[0] == '1' ? "active" : "inactive"));
-                        strcat(answer, toAdd);
+                    if (n != 0 ){
+                        printf("Auction %s: %s\n", AID, (activ[0] == '1' ? "Active" : "Inactive"));
                     }
 
-                    printf("%s", answer);
-
-                    free(answer);
                     free(arg3);
                     return 1;
                 }
@@ -529,7 +548,86 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 printf("Error receiving answer from AS\n");
                 return -1;
             }
+        case SHOW_RECORD:
+            arg3 = (char *)malloc((strlen(buffer)-5)*sizeof(char));
             
+            memset(AID, '\0', sizeof(AID));
+
+            sscanf(message, "SRC %s\n", AID);
+
+            n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
+
+            //printing lists for LST and LMA
+            if (strcmp(arg1, "RRC") == 0 && strcmp(arg2, "OK") == 0){
+                if (n != 3) {
+                    printf("Reading record failed\n");
+                    free(arg3);  // Free the original memory before exiting
+                    return -1;
+                }
+                if (arg3 == NULL) {
+                    // Handle realloc failure
+                    printf("Memory reallocation failed for record\n");
+                    free(arg3);  // Free the original memory before exiting
+                    return -1;    // Return an error code
+                } else {
+                    //printf("%s, %d\n", arg3, strlen(arg3));
+                    char host_UID[7], auction_name[20], asset_name[20], start_value[20], start_date[20], start_time[20], duration[20];
+                    memset(host_UID, '\0', sizeof(host_UID));
+                    memset(auction_name, '\0', sizeof(auction_name));
+                    memset(asset_name, '\0', sizeof(asset_name));
+                    memset(start_value, '\0', sizeof(start_value));
+                    memset(start_date, '\0', sizeof(start_date));
+                    memset(start_time, '\0', sizeof(start_time));
+                    memset(duration, '\0', sizeof(duration));
+
+                    n = sscanf(arg3, "%s %s %s %s %s %s %s %[^\n]", host_UID, auction_name, asset_name, start_value, start_date, start_time, duration, arg3);
+
+
+                    printf("-------------------------- Auction nº %s --------------------------\n", AID);
+                    printf("UID: %s \nAuction name: %s \nAsset name: %s \nStart value: %s \nStart date: %s-%s \nTime active: %s\nActive? %s\n",
+                    host_UID, auction_name, asset_name, start_value, start_date, start_time, duration, ((n == 7) ? "Yes" : "No"));
+
+                    char letter[2], bidder_UID[7], bid_value[20], bid_date[20], bid_time[20], time_until_bid[20];
+                    int j;
+                    if (arg3[0] == 'B')
+                        printf("        ------------------------------------------------\n");
+
+                    while(1) { 
+                        j = sscanf(arg3, "%s %s %s %s %s %s %[^\n]", letter, bidder_UID, bid_value, bid_date, bid_time, time_until_bid, arg3);
+                        if (letter[0] == 'E')
+                            break;
+
+                        printf("Bidder ID: %s\nBid value: %s \tBid date: %s-%s \tTime until bid: %s\n", 
+                        bidder_UID, bid_value, bid_date, bid_time, time_until_bid);
+                        if (j == 6) {
+                            break;
+                        }
+                    }
+
+                    if (n == 8){
+                        //process E
+                        printf("        ------------------------------------------------\nEnd date: %s-%s\nDuration: %s\n",
+                         bidder_UID, bid_value, bid_date);     //THESE VARIABLES ARE RIGHT EVEN IF IT DOENS'T LOOK LIKE IT      
+                    }
+
+                    printf("--------------------------------------------------------------------\n");
+
+                    free(arg3);
+                    return 1;
+                }
+            }
+            if (strcmp(buffer, "RRC OK\n") == 0) {
+                printf("Show record unsuccessful. No such auction.\n");
+                return 1;
+            }
+            else if (strcmp(buffer, "RRC NOK\n") == 0) {
+                printf("Show record unsuccessful. No such auction.\n");
+                return -1;
+            }
+            else {
+                printf("Error receiving answer from AS\n");
+                return -1;
+            }
 
         
         default:
