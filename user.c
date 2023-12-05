@@ -31,6 +31,7 @@ int logout(char username[7], char password[9], char ASIP[16], char ASport[6]);
 int unregister(char username[7], char password[9], char ASIP[16], char ASport[6]);
 int list_(char ASIP[16], char ASport[6]);
 int myauctions(char username[7], char ASIP[16], char ASport[6]);
+int mybids(char username[7], char ASIP[16], char ASport[6]);
 void exit_program(char username[6]);
 int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]);
 
@@ -171,8 +172,14 @@ int main (int argc, char* argv[]) {
             }
         }
         else if (strcmp(function, "mybids") == 0 || strcmp(function,"mb") == 0) {
-            printf("entered mybids");
-            //mybids();
+            if (username[0] == '\0') {
+                printf("You are not logged in. Stop.\n");
+                continue;
+            }
+            if (mybids(username, ASIP, ASport) == -1) {
+                printf("Error getting auctions where you have bid\n");
+                continue;
+            }
         }
         else if (strcmp(function, "show_asset") == 0 || strcmp(function,"sa") == 0) {
             printf("entered show_asset");
@@ -301,6 +308,22 @@ int myauctions(char username[7], char ASIP[16], char ASport[6]) {
     return 1;
 }
 
+int mybids(char username[7], char ASIP[16], char ASport[6]) {
+
+    char message[25]; 
+
+    memset(message, '\0', sizeof(message));
+
+    snprintf(message, sizeof(message), "LMB %s\n", username);
+
+    //open UDP socket to AS and send LOU UID password;
+    if (communicate_udp(LIST, message, ASIP, ASport) == -1) {
+        return -1;
+    }
+
+    return 1;
+}
+
 void exit_program(char username[6]) {
     if (username[0] == '\0') {
         printf("Exiting...\n");
@@ -316,7 +339,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     socklen_t addrlen;
     struct addrinfo hints, *res;
     struct sockaddr_in addr;
-    char buffer[300];  //este valor não vai funcionar no futuro, para o comando list o server pode 
+    char buffer[6000];  //este valor não vai funcionar no futuro, para o comando list o server pode 
     //devolver ate 6000 bytes, e nao faz sentido estarmos a definir um buffer[6000] pelo que vamos ter 
     //ler do recvfrom em loop ate nao haver mais nada para ler, vamos ter q usar memoria dinamica 
 
@@ -358,25 +381,10 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     //printf("sent to socket\n");
 
     addrlen = sizeof(addr);
-    n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *) &addr, &addrlen);
+    n = recvfrom(fd, buffer, 5999, 0, (struct sockaddr *) &addr, &addrlen);
+
+    printf("n: %d\n", n);
     
-    // loop and dynamically allocate memory to support until 6000 bytes
-    while (1) {
-        if (n < 128) {
-            break;
-        }
-        char *temp = (char *)malloc((strlen(buffer)+1)*sizeof(char));
-        strcpy(temp, buffer);
-        memset(buffer, '\0', sizeof(buffer));
-        n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *) &addr, &addrlen);
-        temp = (char *)realloc(temp, (strlen(temp) + strlen(buffer) + 1)*sizeof(char));
-        strcat(temp, buffer);
-        memset(buffer, '\0', sizeof(buffer));
-        strcpy(buffer, temp);
-        free(temp);
-    }
-
-
     //printf("received from socket\n");
     if(n == -1) {
         printf("Error receviving from socket\n");
@@ -450,8 +458,9 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
             int n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
 
             //printing lists for LST and LMA
-            if ((strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) || (
-             strcmp(arg1, "RMA") == 0 && strcmp(arg2, "OK") == 0)) 
+            if ((strcmp(arg1, "RLS") == 0 && strcmp(arg2, "OK") == 0) || (    // list
+             strcmp(arg1, "RMA") == 0 && strcmp(arg2, "OK") == 0) ||   (      // myauctions
+             strcmp(arg1, "RMB") == 0 && strcmp(arg2, "OK") == 0))            // mybids
             {
                 if (n != 3) {
                     printf("Reading list failed\n");
@@ -467,25 +476,28 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                     //printf("%s, %d\n", arg3, strlen(arg3));
                     char *answer = (char *)malloc(strlen(arg3)*sizeof(char));
                     char toAdd[30];
-                    int show = 0; //variable to keep track if there is at least one active auction
-                    
+                    int n;
                     memset(toAdd, '\0', sizeof(toAdd));
 
                     //in this loop im storing all the auctions in the variable answer
-                    while(sscanf(arg3, "%s %s %[^\n]", AID, activ, arg3) == 3) {
+                    while((n = sscanf(arg3, "%s %s %[^\n]", AID, activ, arg3)) == 3) { 
                         answer = (char *)realloc(answer, strlen(answer) + strlen("Auction number 111: inactive\n") + 1);
 
                         snprintf(toAdd, strlen("Auction number 111: inactive\n") + 1, "Auction number %s: %s\n", AID, (activ[0] == '1' ? "active" : "inactive"));
                         
                         strcat(answer, toAdd);
                         memset(toAdd, '\0', sizeof(toAdd));
-
-                        if (activ[0] == '1')
-                            show = 1;
                     }
-                    // only printing the auctions if there is at least one active
-                    if (show == 1)
-                        printf("%s", answer);
+
+                    //last time 
+                    if (n != 0){
+                        printf("n: %d\n", n);
+                        answer = (char *)realloc(answer, strlen(answer) + strlen("Auction number 111: inactive\n") + 1);
+                        snprintf(toAdd, strlen("Auction number 111: inactive\n") + 1, "Auction number %s: %s\n", AID, (activ[0] == '1' ? "active" : "inactive"));
+                        strcat(answer, toAdd);
+                    }
+
+                    printf("%s", answer);
 
                     free(answer);
                     free(arg3);
@@ -498,11 +510,19 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 return -1;
             }
             else if (strcmp(buffer, "RMA NOK\n") == 0) {
-                printf("List unsuccessful. You don't have any active auctions.\n");
+                printf("My auctions unsuccessful. No active auctions.\n");
+                return -1;
+            }
+            else if (strcmp(buffer, "RMB NOK\n") == 0) {
+                printf("My bids unsuccessful. No ongoing bids.\n");
                 return -1;
             }
             else if (strcmp(buffer, "RMA NLG\n") == 0) {
-                printf("List unsuccessful. You are not logged in.\n");
+                printf("My auctions unsuccessful. You are not logged in.\n");
+                return -1;
+            }
+            else if (strcmp(buffer, "RMB NLG\n") == 0) {
+                printf("My bids unsuccessful. You are not logged in.\n");
                 return -1;
             }
             else {
