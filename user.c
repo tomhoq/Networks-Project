@@ -359,6 +359,24 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
 
     addrlen = sizeof(addr);
     n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *) &addr, &addrlen);
+    
+    // loop and dynamically allocate memory to support until 6000 bytes
+    while (1) {
+        if (n < 128) {
+            break;
+        }
+        char *temp = (char *)malloc((strlen(buffer)+1)*sizeof(char));
+        strcpy(temp, buffer);
+        memset(buffer, '\0', sizeof(buffer));
+        n = recvfrom(fd, buffer, 128, 0, (struct sockaddr *) &addr, &addrlen);
+        temp = (char *)realloc(temp, (strlen(temp) + strlen(buffer) + 1)*sizeof(char));
+        strcat(temp, buffer);
+        memset(buffer, '\0', sizeof(buffer));
+        strcpy(buffer, temp);
+        free(temp);
+    }
+
+
     //printf("received from socket\n");
     if(n == -1) {
         printf("Error receviving from socket\n");
