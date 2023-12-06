@@ -205,7 +205,6 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     }
 
     //print_all_characters(message);
-    //printf("%d\n", strlen(message));
     n = sendto(fd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");

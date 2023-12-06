@@ -2,13 +2,18 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int open_(char username[7], char password[9], char name[20], char start_value[20], char duration[20], char file_name[20], char ASIP[16], char ASport[6]);
-int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16], char ASport[6]);
-int close_(char username[7], char password[9], char aid[3], char ASIP[16], char ASport[6]);
-
 #define TCP_MSG_CHUNK 128
 #define OPEN 5
 #define CLOSE 6
+#define SHOW_ASSET 7
+#define MAKE_BID 8
+
+int open_(char username[7], char password[9], char name[20], char start_value[20], char duration[20], char file_name[20], char ASIP[16], char ASport[6]);
+int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16], char ASport[6]);
+int close_(char username[7], char password[9], char aid[4], char ASIP[16], char ASport[6]);
+int show_asset(char aid[4], char ASIP[16], char ASport[6]);
+int make_bid(char username[7], char password[9], char aid[4], char value[20], char ASIP[16], char ASport[6]);
+
 
 int main (int argc, char* argv[]) {
     
@@ -177,12 +182,25 @@ int main (int argc, char* argv[]) {
             }
         }
         else if (strcmp(function, "show_asset") == 0 || strcmp(function,"sa") == 0) {
-            printf("entered show_asset");
+            if (n == 2){
+                if (show_asset(arg1, ASIP, ASport) == -1) {
+                    printf("Error showing asset\n");
+                    continue;
+                }
+            }
+            else
+                printf("Invalid format\n");
             //show_asset(token);
         }
         else if (strcmp(function, "bid") == 0 || strcmp(function,"b") == 0) {
-            printf("entered bid");
-            //bid(token);
+            if (username[0] == '\0') {
+                printf("You are not logged in. Stop.\n");
+                continue;
+            }
+            if (make_bid(username, password, arg1, arg2, ASIP, ASport)==-1) {
+                printf("Error making bid\n");
+                continue;
+            }
         }
         else if ((strcmp(function, "show_record") == 0 || strcmp(function,"sr") == 0)) {
             if (n == 2){
@@ -270,7 +288,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
     return 1;
 }
 
-int close_(char username[7], char password[9], char aid[3], char ASIP[16], char ASport[6]) {
+int close_(char username[7], char password[9], char aid[4], char ASIP[16], char ASport[6]) {
     char message[128];
     memset(message, '\0', sizeof(message));
 
@@ -287,13 +305,48 @@ int close_(char username[7], char password[9], char aid[3], char ASIP[16], char 
     return 1;
 }
 
+int show_asset(char aid[4], char ASIP[16], char ASport[6]) {
+    char message[25];
+    memset(message, '\0', sizeof(message));
+
+    sprintf(message, "SAS %s\n", aid);
+
+    size_t message_length = strlen(message);
+
+    int n = communicate_tcp(SHOW_ASSET, message, message_length, ASIP, ASport);
+    if (n == -1) {
+        printf("Error communicating with AS\n");
+        return -1;
+    }
+    
+    return 1;
+}
+
+int make_bid(char username[7], char password[9], char aid[4], char value[20], char ASIP[16], char ASport[6]) {
+    char message[128];
+    memset(message, '\0', sizeof(message));
+
+    sprintf(message, "BID %s %s %s %s\n", username, password, aid, value);
+
+    size_t message_length = strlen(message);
+
+    int n = communicate_tcp(MAKE_BID, message, message_length, ASIP, ASport);
+    if (n == -1) {
+        printf("Error communicating with AS\n");
+        return -1;
+    }
+    
+    return 1;
+}
+
 int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16], char ASport[6]) {
     int fd, errcode;
     ssize_t n;
     struct addrinfo hints, *res;
-    char buffer[128];
+    size_t buffer_size = 128;
+    char *buffer = (char *) malloc(buffer_size*sizeof(char));
     
-    memset(buffer, '\0', sizeof(buffer));
+    memset(buffer, '\0',buffer_size);
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1){
@@ -338,10 +391,36 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
     }
     printf("total_sent: %ld\n", total_sent);
 
+    size_t total_read = 0;
+
     n = read(fd, buffer, 128);  
     if(n == -1){
         printf("Error reading\n");
         return -1;
+    }
+    
+    while (1) {
+        ssize_t n = read(fd, buffer + total_read, buffer_size - total_read);
+        if (n == -1) {
+            printf("Error reading\n");
+            free(buffer);
+            return -1;
+        } else if (n == 0) { // End of file, no more data to read
+            break;
+        }
+
+        total_read += n;
+
+        if (total_read >= buffer_size) { // Buffer full, need to expand
+            buffer_size *= 2;
+            char *temp_buffer = (char *) realloc(buffer, buffer_size * sizeof(char));
+            if (temp_buffer == NULL) {
+                printf("Memory reallocation failed\n");
+                free(buffer);
+                return -1;
+            }
+            buffer = temp_buffer;
+        } 
     }
     printf("buffer: %s\n", buffer);
 
@@ -366,10 +445,11 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
                 }
             }
             printf("Auction opened with ID: %s\n", AID);
+            return 1;
         }
         else if (strcmp(buffer, "ROA NOK\n") == 0){
             printf("Error opening auction\n");
-            return 1;
+            return -1;
         }
         else if (strcmp(buffer, "ROA NLG\n") == 0)
         {
@@ -390,10 +470,11 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         int j = sscanf(buffer, "%s %s", arg1,arg2);
         if (strcmp(arg1, "RCL") == 0 && strcmp(arg2, "OK") == 0 && j==2){
             printf("Auction closed\n");
+            return 1;
         }
         else if (strcmp(buffer, "RCL NOK\n") == 0){
             printf("Error closing auction\n");
-            return 1;
+            return -1;
         }
         else if (strcmp(buffer, "RCL NLG\n") == 0)
         {
@@ -403,20 +484,116 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         else if (strcmp(buffer, "RCL EAU\n") == 0)
         {
             printf("Auction does not exist\n");
+            return -1;
         }
         else if (strcmp(buffer, "RCL EOW\n") == 0)
         {
             printf("You are not the owner of this auction. Stop.\n");
+            return -1;
         }
         else if (strcmp(buffer, "RCL END\n") == 0)
         {
             printf("Auction has already finished\n");
+            return -1;
         }
         else {
             printf("Invalid AID\n");
             return -1;
         }
         break;
+    }
+    case MAKE_BID: {
+        if (strcmp(buffer, "RBD ACC\n") == 0) {
+            printf("Bid made\n");
+            return 1;
+        }
+        else if (strcmp(buffer, "RBD NOK\n") == 0) {
+            printf("Auction not active\n");
+            return -1;
+        }
+        else if (strcmp(buffer, "RBD NLG\n") == 0) {
+            printf("User not logged in\n");
+            return -1;
+        }
+        else if (strcmp(buffer, "RBD REF\n") == 0) {
+            printf("Your bid must be greater than current bid\n");
+            return -1;
+        }
+        else if (strcmp(buffer, "RBD ILG\n") == 0) {
+            printf("You can't bid on your own auction. Stop.\n");
+            return -1;
+        }
+        else if (strcmp(buffer, "RBD EBD\n") == 0) {
+            printf("Bid is lower than the current highest bid\n");
+            return -1;
+        }
+        else {
+            printf("Invalid format\n");
+            return -1;
+        }
+        break;
+    }
+    case SHOW_ASSET: {
+        char arg1[5], arg2[5], Fname[26], Fsize[10];
+        memset(arg1, '\0', sizeof(arg1));
+        memset(arg2, '\0', sizeof(arg2));
+        memset(Fname, '\0', sizeof(Fname));
+        memset(Fsize, '\0', sizeof(Fsize));
+
+        int j = sscanf(buffer, "%s %s %s %s", arg1,arg2, Fname, Fsize);
+        int Fbytes = atoi(Fsize);
+        
+        char *Fdata = (char *) malloc(Fbytes*sizeof(char));  //falta igualar fdata a alguma coisa!
+        if (Fdata == NULL) {
+            perror("Error allocating memory");
+            return -1;
+        }
+
+        if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0 && j==4){
+            
+            // TRABALHA MALANDRO
+            // SE É ASSIM TÃO FACIL GUARDAR O FICHEIRO NO DIRETORIO LOCAL,
+            // TENS UMA OTIMA OPORTUNIDADE DE MOSTRAR QUE EU SOU INCOMPETENTE
+            // ENQUANTO ISSO, EU NÃO TOU A FRITAR A CAROLA :)))))))
+
+            //por freesss
+            char path[40];
+            memset(path, '\0', sizeof(path));
+            snprintf(path, sizeof(path), "./files/%s", Fname);
+            FILE *file = fopen(Fname, "w");  // Open the file in binary mode
+            if (file == NULL) {
+                perror("Error opening file");
+                free(buffer);
+                free(Fdata);
+                return -1;
+            }
+
+            // Write the file content
+            int read_size = (int) fwrite(Fdata, 1, Fbytes, file);
+            if (read_size != Fbytes) {
+                perror("Error reading file");
+                free(buffer);
+                free(Fdata);
+                fclose(file);
+                return -1;
+            }
+
+            free(buffer);
+            free(Fdata);
+            return 1;
+        }
+        else if (strcmp(buffer, "RSA NOK\n") == 0){
+            printf("Error showing asset\n");
+            free(buffer);
+            free(Fdata);
+            return -1;
+        }
+        else {
+            printf("Unexpected protocol message\n");
+            free(buffer);
+            free(Fdata);
+            return -1;
+        }
     }
     default:
         printf("Error communicating with AS\n");
