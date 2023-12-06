@@ -425,3 +425,4 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
 
     return 1;
 }
+
