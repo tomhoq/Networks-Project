@@ -287,6 +287,11 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
         return -1;
     }
     size = st.st_size;
+    if (size > 10000000) {
+        printf("File size must be less than 10MB\n");
+        fclose(file);
+        return -1;
+    }
     printf("The size of the file is %ld bytes.\n", size);
 
     // Allocate memory to store the file content
