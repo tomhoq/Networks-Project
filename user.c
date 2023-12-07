@@ -223,6 +223,43 @@ int main (int argc, char* argv[]) {
 int open_(char username[7], char password[9], char name[20], char file_name[20], char start_value[20], char duration[20], char ASIP[16], char ASport[6]) {
     printf("%s %s %s %s %s %s\n", name, file_name, start_value, duration, ASIP, ASport);
 
+    if (strlen(name) > 10) {
+            printf("Auction name must have no more than 10 characters.\n");
+            return -1;
+        }
+    else {
+            for (int i = 0; i < 10; i++) {
+                if (!isalnum(name[i])) {
+                    printf("Invalid auction name. Must contain only alphanumeric characters.\n");
+                    return -1;
+                }
+            } 
+        }
+    if (strlen(start_value) > 6) {
+            printf("Start value must have no more than 6 digits.\n");
+            return -1;
+        }
+    else {
+            for (int i = 0; i < 10; i++) {
+                if (!isdigit(start_value[i])) {
+                    printf("Invalid start time. Must contain only digits.\n");
+                    return -1;
+                }
+            } 
+        }
+    if (strlen(duration) > 5) {
+            printf("Auction duration must have no more than 5 digits.\n");
+            return -1;
+        }
+    else {
+            for (int i = 0; i < 10; i++) {
+                if (!isalnum(name[i])) {
+                    printf("Invalid auction duaration. Must contain only digits.\n");
+                    return -1;
+                }
+            } 
+        }
+    
     FILE *file = fopen(file_name, "rb");  // Open the file in binary mode
     if (file == NULL) {
         perror("Error opening file");
