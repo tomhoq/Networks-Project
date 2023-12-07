@@ -355,7 +355,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
             sscanf(message, "SRC %s\n", AID);
 
             n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
-
+            printf("arg3: %s\n", arg3);
             //printing lists for LST and LMA
             if (strcmp(arg1, "RRC") == 0 && strcmp(arg2, "OK") == 0){
                 if (n != 3) {
@@ -370,7 +370,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                     return -1;    // Return an error code
                 } else {
                     //printf("%s, %d\n", arg3, strlen(arg3));
-                    char host_UID[7], auction_name[20], asset_name[20], start_value[20], start_date[20], start_time[20], duration[20];
+                    char host_UID[20], auction_name[20], asset_name[20], start_value[20], start_date[20], start_time[20], duration[20];
                     memset(host_UID, '\0', sizeof(host_UID));
                     memset(auction_name, '\0', sizeof(auction_name));
                     memset(asset_name, '\0', sizeof(asset_name));
@@ -379,19 +379,26 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                     memset(start_time, '\0', sizeof(start_time));
                     memset(duration, '\0', sizeof(duration));
 
-                    printf("arg3: %s\n", arg3);
+                    //printf("arg3: %s\n", arg3);
                     n = sscanf(arg3, "%s %s %s %s %s %s %s %[^\n]", host_UID, auction_name, asset_name, start_value, start_date, start_time, duration, arg3);
+                    //printf("arg3 after start:\n%s\n", arg3);
 
 
                     printf("-------------------------- Auction nº %s --------------------------\n", AID);
                     printf("UID: %s \nAuction name: %s \nAsset name: %s \nStart value: %s \nStart date: %s-%s \nTime active: %s\nActive? %s\n",
                     host_UID, auction_name, asset_name, start_value, start_date, start_time, duration, ((n == 7) ? "Yes" : "No"));
 
-                    char letter[2], bidder_UID[7], bid_value[20], bid_date[20], bid_time[20], time_until_bid[20];
+                    char letter[2], bidder_UID[20], bid_value[20], bid_date[20], bid_time[20], time_until_bid[20], end_date[20], end_time[20], time_first_bid[20];
                     int j;
                     if (arg3[0] == 'B'){
                         printf("        ------------------------------------------------\n");
                         while(1) { 
+                            memset(letter, '\0', sizeof(letter));
+                            memset(bidder_UID, '\0', sizeof(bidder_UID));
+                            memset(bid_value, '\0', sizeof(bid_value));
+                            memset(bid_date, '\0', sizeof(bid_date));
+                            memset(bid_time, '\0', sizeof(bid_time));
+                            memset(time_until_bid, '\0', sizeof(time_until_bid));
                             j = sscanf(arg3, "%s %s %s %s %s %s %[^\n]", letter, bidder_UID, bid_value, bid_date, bid_time, time_until_bid, arg3);
                             if (letter[0] == 'E')
                                 break;
@@ -402,12 +409,22 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                                 break;
                             }
                         }
-                    }
+                        //printf("finish with bid:\n %s\n", arg3);
 
-                    if (n == 8){
+                        printf("        ------------------------------------------------\nEnd date: %s-%s\nTime until first bid: %s\n",
+                        bidder_UID, bid_value, bid_date);     //THESE VARIABLES ARE RIGHT EVEN IF IT DOENS'T LOOK LIKE IT   
+                    }
+                    else if (n == 8 && arg3[0] == 'E'){
                         //process E
-                        printf("        ------------------------------------------------\nEnd date: %s-%s\nDuration: %s\n",
-                         bidder_UID, bid_value, bid_date);     //THESE VARIABLES ARE RIGHT EVEN IF IT DOENS'T LOOK LIKE IT      
+                        //printf("finish no bid:\n %s\n", arg3);
+                        memset(letter, '\0', sizeof(letter));
+                        memset(end_date, '\0', sizeof(end_date));
+                        memset(end_time, '\0', sizeof(end_time));
+                        memset(time_first_bid, '\0', sizeof(time_first_bid));
+
+                        sscanf(arg3, "%s %s %s %s", letter, end_date, end_time, time_first_bid);
+                        printf("        ------------------------------------------------\nEnd date: %s-%s\nTime until first bid: %s\n",
+                        end_date, end_time, time_first_bid);     //THESE VARIABLES ARE RIGHT EVEN IF IT DOENS'T LOOK LIKE IT   
                     }
 
                     printf("--------------------------------------------------------------------\n");

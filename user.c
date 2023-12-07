@@ -27,7 +27,9 @@ int main (int argc, char* argv[]) {
     //set username as row of \0
     memset(username, '\0', sizeof(username));
     memset(password, '\0', sizeof(password));
-
+    memset(ASIP, '\0', sizeof(ASIP));
+    memset(ASport, '\0', sizeof(ASport));
+    
     //input processing
     if (argc == 1) {
         strcpy(ASIP, "localhost");
@@ -226,47 +228,47 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
     if (strlen(name) > 10) {
             printf("Auction name must have no more than 10 characters.\n");
             return -1;
-        }
+    }
     else {
-            for (int i = 0; i < 10; i++) {
-                if (!isalnum(name[i])) {
-                    printf("Invalid auction name. Must contain only alphanumeric characters.\n");
-                    return -1;
-                }
-            } 
-        }
+        for (int i = 0; i < (int)strlen(name); i++) {
+            if (!isalnum(name[i])) {
+                printf("Invalid auction name. Must contain only alphanumeric characters.\n");
+                return -1;
+            }
+        } 
+    }
     if (strlen(file_name) > 24) {
-            printf("File name must have no more than 24 characters.\n");
-            return -1;
-        }
+        printf("File name must have no more than 24 characters.\n");
+        return -1;
+    }
     else {
-            for (int i = 0; i < 24; i++) {
-                if (!isalnum(file_name[i]) && file_name[i] != '-' && file_name[i] != '_' && file_name[i] != '.') {
-                    printf("Invalid file name.\n");
-                    return -1;
-                }
-            } 
-        }
+        for (int i = 0; i < (int)strlen(file_name); i++) {
+            if (!isalnum(file_name[i]) && file_name[i] != '-' && file_name[i] != '_' && file_name[i] != '.') {
+                printf("Invalid file name.\n");
+                return -1;
+            }
+        } 
+    }
     if (strlen(start_value) > 6) {
             printf("Start value must have no more than 6 digits.\n");
             return -1;
-        }
+    }
     else {
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < (int)strlen(start_value); i++) {
                 if (!isdigit(start_value[i])) {
                     printf("Invalid start time. Must contain only digits.\n");
                     return -1;
                 }
             } 
-        }
+    }
     if (strlen(duration) > 5) {
             printf("Auction duration must have no more than 5 digits.\n");
             return -1;
-        }
+    }
     else {
-            for (int i = 0; i < 5; i++) {
-                if (!isalnum(name[i])) {
-                    printf("Invalid auction duaration. Must contain only digits.\n");
+            for (int i = 0; i < (int)strlen(start_value); i++) {
+                if (!isdigit(duration[i])) {
+                    printf("Invalid auction duration. Must contain only digits.\n");
                     return -1;
                 }
             } 
@@ -462,6 +464,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         } else if (n == 0) { // End of file, no more data to read
             break;
         }
+        printf("olha la maluco%.*s\n", n, buffer + total_read);
 
         total_read += n;
 
@@ -476,7 +479,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             buffer = temp_buffer;
         } 
     }
-    printf("buffer: %s\n", buffer);
+    printf("buffer test: %s\n", buffer);
 
     freeaddrinfo(res);
     close(fd);
@@ -556,6 +559,69 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         }
         break;
     }
+    case SHOW_ASSET: {
+        char arg1[5], arg2[5], Fname[26], Fsize[10];
+        memset(arg1, '\0', sizeof(arg1));
+        memset(arg2, '\0', sizeof(arg2));
+        memset(Fname, '\0', sizeof(Fname));
+        memset(Fsize, '\0', sizeof(Fsize));
+
+        printf("buffer test1: %s\n", buffer);
+        int j = sscanf(buffer, "%s %s %s %s %[^\n]", arg1,arg2, Fname, Fsize, buffer);
+        int Fbytes = atoi(Fsize);
+        printf("arg1: %s, arg2: %s\n", arg1, arg2);
+        printf("buffer test2: %s\n", buffer);
+        
+        char *Fdata = (char *) malloc((Fbytes+1)*sizeof(char));  
+        if (Fdata == NULL) {
+            perror("Error allocating memory");
+            return -1;
+        }
+        memset(Fdata, '\0', Fbytes+1);
+        strncpy(Fdata, buffer, Fbytes);
+
+        if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0 && j==4){
+
+            //por freesss
+            char path[40];
+            memset(path, '\0', sizeof(path));
+            snprintf(path, sizeof(path), "./assets/%s", Fname);
+            FILE *file = fopen(Fname, "w");  // Open the file in binary mode
+            if (file == NULL) {
+                perror("Error opening file");
+                free(buffer);
+                free(Fdata);
+                return -1;
+            }
+
+            // Write the file content
+            int read_size = (int) fwrite(Fdata, 1, Fbytes, file);
+            if (read_size != Fbytes) {
+                perror("Error reading file");
+                free(buffer);
+                free(Fdata);
+                fclose(file);
+                return -1;
+            }
+
+            free(buffer);
+            free(Fdata);
+            return 1;
+        }
+        else if (strcmp(arg1, "RSA") == 0 && strcmp(arg2, "NOK") == 0 && j==4){
+            printf("Error showing asset\n");
+            free(buffer);
+            free(Fdata);
+            return -1;
+        }
+        else {
+            printf("Unexpected protocol message\n");
+            free(buffer);
+            free(Fdata);
+            return -1;
+        }
+        break;
+    }
     case MAKE_BID: {
         if (strcmp(buffer, "RBD ACC\n") == 0) {
             printf("Bid made\n");
@@ -586,68 +652,6 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             return -1;
         }
         break;
-    }
-    case SHOW_ASSET: {
-        char arg1[5], arg2[5], Fname[26], Fsize[10];
-        memset(arg1, '\0', sizeof(arg1));
-        memset(arg2, '\0', sizeof(arg2));
-        memset(Fname, '\0', sizeof(Fname));
-        memset(Fsize, '\0', sizeof(Fsize));
-
-        int j = sscanf(buffer, "%s %s %s %s", arg1,arg2, Fname, Fsize);
-        int Fbytes = atoi(Fsize);
-        
-        char *Fdata = (char *) malloc(Fbytes*sizeof(char));  //falta igualar fdata a alguma coisa!
-        if (Fdata == NULL) {
-            perror("Error allocating memory");
-            return -1;
-        }
-
-        if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0 && j==4){
-            
-            // TRABALHA MALANDRO
-            // SE É ASSIM TÃO FACIL GUARDAR O FICHEIRO NO DIRETORIO LOCAL,
-            // TENS UMA OTIMA OPORTUNIDADE DE MOSTRAR QUE EU SOU INCOMPETENTE
-            // ENQUANTO ISSO, EU NÃO TOU A FRITAR A CAROLA :)))))))
-
-            //por freesss
-            char path[40];
-            memset(path, '\0', sizeof(path));
-            snprintf(path, sizeof(path), "./files/%s", Fname);
-            FILE *file = fopen(Fname, "w");  // Open the file in binary mode
-            if (file == NULL) {
-                perror("Error opening file");
-                free(buffer);
-                free(Fdata);
-                return -1;
-            }
-
-            // Write the file content
-            int read_size = (int) fwrite(Fdata, 1, Fbytes, file);
-            if (read_size != Fbytes) {
-                perror("Error reading file");
-                free(buffer);
-                free(Fdata);
-                fclose(file);
-                return -1;
-            }
-
-            free(buffer);
-            free(Fdata);
-            return 1;
-        }
-        else if (strcmp(buffer, "RSA NOK\n") == 0){
-            printf("Error showing asset\n");
-            free(buffer);
-            free(Fdata);
-            return -1;
-        }
-        else {
-            printf("Unexpected protocol message\n");
-            free(buffer);
-            free(Fdata);
-            return -1;
-        }
     }
     default:
         printf("Error communicating with AS\n");
