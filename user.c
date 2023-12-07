@@ -235,6 +235,18 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
                 }
             } 
         }
+    if (strlen(file_name) > 24) {
+            printf("File name must have no more than 24 characters.\n");
+            return -1;
+        }
+    else {
+            for (int i = 0; i < 24; i++) {
+                if (!isalnum(file_name[i]) && file_name[i] != '-' && file_name[i] != '_' && file_name[i] != '.') {
+                    printf("Invalid file name.\n");
+                    return -1;
+                }
+            } 
+        }
     if (strlen(start_value) > 6) {
             printf("Start value must have no more than 6 digits.\n");
             return -1;
