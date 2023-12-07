@@ -240,7 +240,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
             return -1;
         }
     else {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 6; i++) {
                 if (!isdigit(start_value[i])) {
                     printf("Invalid start time. Must contain only digits.\n");
                     return -1;
@@ -252,7 +252,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
             return -1;
         }
     else {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 5; i++) {
                 if (!isalnum(name[i])) {
                     printf("Invalid auction duaration. Must contain only digits.\n");
                     return -1;
