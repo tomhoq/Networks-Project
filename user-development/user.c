@@ -274,7 +274,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
             } 
         }
     
-    FILE *file = fopen(file_name, "rb");  // Open the file in binary mode
+    FILE *file = fopen(file_name, "rb"); // Open the file in binary mode
     if (file == NULL) {
         perror("Error opening file");
         return -1;
@@ -328,7 +328,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
 
     sprintf(message, "OPA %s %s %s %s %s %s %ld ", username, password, name, start_value, duration, file_name, size);
     size_t intro_size = strlen(message);
-    sprintf(message + intro_size, "%s\n", file_content);
+    memcpy(message + intro_size, file_content, size);
 
     free(file_content);
     printf("message: %s\n", message);
@@ -431,7 +431,6 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
 
 
    size_t total_sent = 0;
-
    while (total_sent < message_length) {
         size_t remaining = message_length - total_sent;
         size_t to_send = remaining > TCP_MSG_CHUNK ? TCP_MSG_CHUNK : remaining;
@@ -448,13 +447,6 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
     printf("total_sent: %ld\n", total_sent);
 
     size_t total_read = 0;
-
-    n = read(fd, buffer, 128);  
-    if(n == -1){
-        printf("Error reading\n");
-        return -1;
-    }
-    
     while (1) {
         ssize_t n = read(fd, buffer + total_read, buffer_size - total_read);
         if (n == -1) {
@@ -464,10 +456,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         } else if (n == 0) { // End of file, no more data to read
             break;
         }
-        printf("olha la maluco%.*s\n", n, buffer + total_read);
-
         total_read += n;
-
         if (total_read >= buffer_size) { // Buffer full, need to expand
             buffer_size *= 2;
             char *temp_buffer = (char *) realloc(buffer, buffer_size * sizeof(char));
@@ -479,7 +468,6 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             buffer = temp_buffer;
         } 
     }
-    printf("buffer test: %s\n", buffer);
 
     freeaddrinfo(res);
     close(fd);
@@ -567,7 +555,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         memset(Fsize, '\0', sizeof(Fsize));
 
         printf("buffer test1: %s\n", buffer);
-        int j = sscanf(buffer, "%s %s %s %s %[^\n]", arg1,arg2, Fname, Fsize, buffer);
+        int j = sscanf(buffer, "%s %s %s %s%*[ ]%[^]", arg1,arg2, Fname, Fsize, buffer);
         int Fbytes = atoi(Fsize);
         printf("arg1: %s, arg2: %s\n", arg1, arg2);
         printf("buffer test2: %s\n", buffer);
@@ -578,15 +566,27 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             return -1;
         }
         memset(Fdata, '\0', Fbytes+1);
-        strncpy(Fdata, buffer, Fbytes);
 
-        if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0 && j==4){
+        int offset = strlen(arg1) + strlen(arg2) + strlen(Fname) + strlen(Fsize) + 4;
+        memcpy(Fdata, buffer + offset, Fbytes);
+
+        printf("DATA: %s\n", Fdata);
+
+        if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0){
+
+            printf("Trying to write asset...\n");
 
             //por freesss
             char path[40];
             memset(path, '\0', sizeof(path));
             snprintf(path, sizeof(path), "./assets/%s", Fname);
-            FILE *file = fopen(Fname, "w");  // Open the file in binary mode
+
+            printf("path: %s\n", path);
+
+            FILE *file = fopen(path, "w");  // Open the file in binary mode
+            if (file == NULL) {
+                file = fopen(path, "w+"); // Create the file if it doesn't exist
+            }
             if (file == NULL) {
                 perror("Error opening file");
                 free(buffer);
@@ -595,7 +595,9 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             }
 
             // Write the file content
+            printf("Fbytes: %d\n", Fbytes);
             int read_size = (int) fwrite(Fdata, 1, Fbytes, file);
+            printf("read_size: %d\n", read_size);
             if (read_size != Fbytes) {
                 perror("Error reading file");
                 free(buffer);
@@ -606,6 +608,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
 
             free(buffer);
             free(Fdata);
+            fclose(file);
             return 1;
         }
         else if (strcmp(arg1, "RSA") == 0 && strcmp(arg2, "NOK") == 0 && j==4){
