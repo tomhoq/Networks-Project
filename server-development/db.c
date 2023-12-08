@@ -87,6 +87,25 @@ int create_directory(const char *dir_path) {
     return 0;  // Directory created successfully
 }
 
+int is_password_correct(const char * file_path, char *password){
+    char *p = malloc(10 * sizeof(char));
+    memset(p, 0, 10);
+    if (read_file(file_path, p, 9) == -1) {
+        printf("Error reading password file");
+        return -1;
+    }
+    printf("%s\n",p);
+    if (strcmp(p, password) == 0) {
+        printf("Password is correct.\n");
+        free(p);
+        return 1;
+    } else {
+        printf("Password is incorrect.\n");
+        free(p);
+        return 0;
+    }
+}
+
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
 
 int login_user(char username[10], char pass[10]) {
@@ -138,22 +157,14 @@ int login_user(char username[10], char pass[10]) {
 
     if (file_exists(pass_file)) {    // there is an account
         printf("File  already exists: %s\n", pass_file);
-        char *p = malloc(10 * sizeof(char));
-        memset(p, 0, 10);
-        if (read_file(pass_file, p, 9) == -1) {
-            printf("Error reading password file");
-            return -1;
-        }
-        printf("%s\n",p);
-        if (strcmp(p, pass) == 0) {
+
+        if (is_password_correct(pass_file, pass)) {
             printf("Password is correct.\n");
             exists = 1;
         } else {
             printf("Password is incorrect.\n");
-            free(p);
             return NOK;
         }
-        free(p);
     }
     else{ //registering user
         FILE* pass_fp = fopen(pass_file, "w");
@@ -207,15 +218,29 @@ int logout(char username[10], char password[10]){
 
     sprintf(user_directory, "./USERS/%s/", username);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, username);
+    sprintf(login_file, "%s%s_login.txt", user_directory, username);
     if (!directory_exists(user_directory)) {
-        printf("Directory does not exist.\n");
+        printf("User not registered.\n");
         return UNR;
-    } else if (!file_exists(pass_file)) {
-        printf("Pass file does not exist\n");
+    } 
+    if (!file_exists(pass_file)) {
+        printf("User not registered. No pass_file\n");
         return UNR;
     }
-    
-
+    else if (!file_exists(login_file)) {
+        printf("User not logged in.\n");
+        return NOK;
+    }
+    else{
+        if (is_password_correct(pass_file, password)) {
+            printf("Password is correct.\n");
+            delete_file(login_file);
+            return OK;
+        } else {
+            printf("Password is incorrect.\n");
+            return NOK;
+        }
+    }
 }
 
 
@@ -223,11 +248,14 @@ int main() {
     char username[10] = "234234";
     char password[10] = "23423423";
 
+    
     if (login_user("234234", "23423423") == 0) {
         printf("User registered successfully.\n");
     } else {
         printf("Failed to register user.\n");
     }
+    printf("logging out\n");
+    printf("%d\n", logout("234234", "23423423"));
 
     return 0;
 }
