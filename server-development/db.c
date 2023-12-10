@@ -17,8 +17,27 @@
 #define NLG 14
 
 #define last 666
+
+typedef struct {
+    char bidder_UID[10];
+    char bid_value[10];
+    char bid_date[10];
+    char bid_time[10];
+    char bid_sec_time[10];
+} bid;
+
 typedef struct {
     char id[10];
+    char host_uid[10];
+    char asset_name[15];
+    char start_value[10];
+    char start_date[10];
+    char start_time[10];
+    char time_active[10];
+    bid bids[51];
+    char end_date[10];
+    char end_time[10];
+    char end_sec_time[10];
     int active;
 } auction;
 
@@ -170,7 +189,7 @@ int login_user(char username[10], char pass[10]) {
 
         sprintf(hosted_dir, "%sHOSTED/", user_directory);
         sprintf(bids_dir, "%sBIDDED/", user_directory);
-
+        
         if (create_directory(hosted_dir) == -1) {
             return -1;
         }
@@ -179,6 +198,20 @@ int login_user(char username[10], char pass[10]) {
         }
     } else {
         printf("Directory already exists.\n"); //user is going to reset password
+
+        //temporario
+        sprintf(hosted_dir, "%sHOSTED/", user_directory);
+        sprintf(bids_dir, "%sBIDDED/", user_directory);
+        if (!directory_exists(hosted_dir)) {
+            if (create_directory(hosted_dir) == -1) {
+                return -1;
+            }
+        }
+        if (!directory_exists(bids_dir)) {
+            if (create_directory(bids_dir) == -1) {
+                return -1;
+            }
+        }
     }
     
     // Create the user's password file-------------------------------------------------------------------------------------------------------
@@ -313,7 +346,7 @@ int unregister(char username[10], char password[10]){
     }
 }
 
-int get_user_auctions(char username[10], auction list[999]){
+int get_user_auctions(char username[10], auction list[1000]){
     char user_directory[30];
     char login_file[50];
     char hosted_dir[50];
@@ -373,11 +406,142 @@ int get_user_auctions(char username[10], auction list[999]){
         free(filelist);
         
         list[i].active = last;
-        printf("%s\n", list[1].id);
-        printf("%d\n", list[2].active);
-        return OK;
+        printf("Number of auctions: %d\n", i);
+        if (i ==0)
+            return NOK;
+        else
+            return OK;
     }
 
+}
+
+int get_user_bids(char username[10], auction list[1000]){
+    char user_directory[30];
+    char login_file[50];
+    char bidded_dir[50];
+    int len;
+    struct dirent **filelist;
+
+    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(login_file, "%s%s_login.txt", user_directory, username);
+    sprintf(bidded_dir, "%sBIDDED/", user_directory);
+
+    if (!directory_exists(user_directory)) {
+        printf("User not registered.\n");
+        return NOK;
+    }
+    else if (!directory_exists(bidded_dir)) {
+        printf("This should not happen. ERROR AT DB\n");
+        return NOK;
+    }
+    else if (!file_exists(login_file)) {
+        printf("User not logged in.\n");
+        return NLG;
+    }
+    else {
+        int number_auctions = scandir(bidded_dir, &filelist, 0, alphasort);
+        if (number_auctions <= 0)
+            return NOK;
+
+        int j = 0, i = 0;
+        char id[4];
+        char end_file[50];
+        while(j<number_auctions){
+            memset(id, 0, sizeof(id));
+            memset(end_file, 0, sizeof(end_file));
+            len = strlen(filelist[j]->d_name);
+            if (len == 7) {
+                const char *lastDot = strrchr(filelist[j]->d_name, '.');
+
+                if (lastDot != NULL) {
+                    // Found a dot, extract basename and extension
+                    strncpy(id, filelist[j]->d_name, lastDot - filelist[j]->d_name);
+                    strcpy(list[i].id, id);
+
+                    sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                    if (file_exists(end_file)) {
+                        list[i].active = 0;
+                    } else {
+                        list[i].active = 1;
+                    }
+                    
+                    i++;
+
+                }
+            }
+            free(filelist[j]);
+            j++;
+        }
+        free(filelist);
+        
+        list[i].active = last;
+        printf("Number of auctions: %d\n", i);
+        if (i ==0)
+            return NOK;
+        else
+            return OK;
+    }
+
+}
+
+int get_all_auctions(auction list[1000]){
+    char auctions_dir[30];
+    char login_file[50];
+    char bidded_dir[50];
+    int len;
+    struct dirent **filelist;
+
+    strcpy(auctions_dir, "./AUCTIONS/");
+
+    if (!directory_exists(auctions_dir)) {
+        printf("User not registered.\n");
+        return NOK;
+    }
+    else {
+        int number_auctions = scandir(auctions_dir, &filelist, 0, alphasort);
+        if (number_auctions <= 0)
+            return NOK;
+
+        int j = 0, i = 0;
+        char id[4];
+        char end_file[50];
+        while(j<number_auctions){
+            memset(end_file, '\0', sizeof(end_file));
+            memset(id, '\0', sizeof(id));
+            len = strlen(filelist[j]->d_name);
+            if (len == 3) {
+                printf("%s\n", filelist[j]->d_name);
+                strncpy(id, filelist[j]->d_name, 3);
+                strcpy(list[i].id, id);
+
+                sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                if (file_exists(end_file)) {
+                    list[i].active = 0;
+                } else {
+                    list[i].active = 1;
+                }
+                
+                i++;
+
+            }
+            free(filelist[j]);
+            j++;
+        }
+        free(filelist);
+        
+        list[i].active = last;
+        printf("Number of auctions: %d\n", i);
+        if (i ==0)
+            return NOK;
+        else
+            return OK;
+    }
+
+}
+
+
+int get_record(char aid[5], auction a){
+    
 }
 
 int main() {
@@ -385,18 +549,21 @@ int main() {
     char password[10] = "23423423";
 
     
-    if (login_user(username, password) == 0) { // corrigir!
+    if (login_user("123123", "12312312") == 0) { // corrigir!
         printf("User login successfully.\n");
     } 
+    auction a[1000];
 
-    auction a[999];
-    get_user_auctions("234234", a);
+    printf("%d\n", get_all_auctions(a));
     int i = 0;
-    while (a[i].active != last) {
+
+    while (a[i].active != last)
+    {
         printf("%s\n", a[i].id);
         printf("%d\n", a[i].active);
         i++;
     }
+    
 
 
 
