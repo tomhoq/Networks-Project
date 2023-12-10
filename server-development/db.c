@@ -14,6 +14,13 @@
 #define NOK 11
 #define REG 12
 #define UNR 13
+#define NLG 14
+
+#define last 666
+typedef struct {
+    char id[10];
+    int active;
+} auction;
 
 //FUNCOES BASE-------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -306,12 +313,12 @@ int unregister(char username[10], char password[10]){
     }
 }
 
-char *get_user_auctions(char username[10]){
+int get_user_auctions(char username[10], auction list[999]){
     char user_directory[30];
     char login_file[50];
     char hosted_dir[50];
-    DIR *dir;
-    struct dirent *entry;
+    int len;
+    struct dirent **filelist;
 
     sprintf(user_directory, "./USERS/%s/", username);
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
@@ -319,79 +326,58 @@ char *get_user_auctions(char username[10]){
 
     if (!directory_exists(user_directory)) {
         printf("User not registered.\n");
-        return NULL;
+        return NOK;
     }
     else if (!directory_exists(hosted_dir)) {
         printf("This should not happen. ERROR AT DB\n");
-        return NULL;
+        return NOK;
     }
     else if (!file_exists(login_file)) {
         printf("User not logged in.\n");
-        return NULL;
+        return NLG;
     }
-    else{
-        int number_files = 0;
-        char *auctions;
-        DIR *dir;
-        struct dirent *ent;
-        if ((dir = opendir (hosted_dir)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
-                    number_files += 1;
-                }
-            }
-            if (closedir(dir) == -1) {
-                printf("Error closing directory\n");
-                return NULL;
-            }
-        }
+    else {
+        int number_auctions = scandir(hosted_dir, &filelist, 0, alphasort);
+        if (number_auctions <= 0)
+            return NOK;
 
-        if (number_files == 0) {
-            printf("No auctions hosted.\n");
-            return NULL;
-        }
-        auctions = malloc(number_files * 7 * sizeof(char));
-        memset(auctions, '\0', 100);
-        char auc[5];
-        memset(auc, '\0', 5);
+        int j = 0, i = 0;
+        char id[4];
+        char end_file[50];
+        while(j<number_auctions){
+            memset(id, 0, sizeof(id));
+            memset(end_file, 0, sizeof(end_file));
+            len = strlen(filelist[j]->d_name);
+            if (len == 7) {
+                const char *lastDot = strrchr(filelist[j]->d_name, '.');
 
-        if ((dir = opendir (hosted_dir)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                number_files -= 1;
-                if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
-                    char *dotPosition = strchr(ent->d_name, '.');
-                    // Copy only the part before the period (if any)
-                    if (dotPosition != NULL) {
-                        strncat(auc, ent->d_name, dotPosition - ent->d_name);
-                        strcat(auctions, auc);
-                        if (is_auction_active(auc)) {
-                            strcat(auctions, " 1");
-                        } else {
-                            strcat(auctions, " 0");
-                        }
-                        printf("b: %s\n, %d\n", ent->d_name, dotPosition - ent->d_name);
+                if (lastDot != NULL) {
+                    // Found a dot, extract basename and extension
+                    strncpy(id, filelist[j]->d_name, lastDot - filelist[j]->d_name);
+                    strcpy(list[i].id, id);
+
+                    sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                    if (file_exists(end_file)) {
+                        list[i].active = 0;
                     } else {
-                        return NULL;
+                        list[i].active = 1;
                     }
-                    if (number_files != 0)
-                        strcat(auctions, " ");
-                    else
-                        strcat(auctions, "\n");
-                    memset(auc, '\0', 5);
+                    
+                    i++;
+
                 }
             }
-            if (closedir(dir) == -1) {
-                printf("Error closing directory\n");
-                free(auctions);
-                return NULL;
-            }
-        } else {
-            free(auctions);
-            printf("Error opening directory\n");
-            return NULL;
+            free(filelist[j]);
+            j++;
         }
-        return auctions;
+        free(filelist);
+        
+        list[i].active = last;
+        printf("%s\n", list[1].id);
+        printf("%d\n", list[2].active);
+        return OK;
     }
+
 }
 
 int main() {
@@ -399,15 +385,27 @@ int main() {
     char password[10] = "23423423";
 
     
-    if (unregister("234234", "23423423") == 0) { // corrigir!
+    if (login_user(username, password) == 0) { // corrigir!
         printf("User login successfully.\n");
     } 
+
+    auction a[999];
+    get_user_auctions("234234", a);
+    int i = 0;
+    while (a[i].active != last) {
+        printf("%s\n", a[i].id);
+        printf("%d\n", a[i].active);
+        i++;
+    }
+
+
+
     /*if
     char *s = get_user_auctions("234234");  // corrigir!
     printf("Auctions: %s\n", s);
     free(s);
 
-    s = get_user_auctions("123123");
+    s = 
     printf("Auctions: %s\n", s);
     if (s == NULL) {
         printf("0 auctions.\n");
