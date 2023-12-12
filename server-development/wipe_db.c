@@ -50,6 +50,19 @@ int clear_directory(const char *dir_path) {
     return 0;
 }
 
+int delete_all(const char *dir_path) {
+    if (clear_directory(dir_path) == 0) {
+        if (rmdir(dir_path) != 0) {
+            printf("Error deleting directory: %s\n", dir_path);
+            return -1; // Return an error code
+        }
+        return 0; // Directory and its contents deleted successfully
+    } else {
+        printf("Failed to delete contents inside '%s'.\n", dir_path);
+        return -1; // Propagate the error code
+    }
+}
+
 int clear_bd() {
     if (clear_directory("USERS") == -1) {
         return -1;
@@ -57,16 +70,6 @@ int clear_bd() {
 
     if (clear_directory("AUCTIONS") == -1) {
         return -1;
-    }
-
-    return 0;
-}
-
-int main() {
-    if (clear_bd() == 0) {
-        printf("Directories cleared successfully.\n");
-    } else {
-        printf("Failed to clear directories.\n");
     }
 
     return 0;

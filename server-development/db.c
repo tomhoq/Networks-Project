@@ -1,3 +1,4 @@
+#include "wipe_db.c"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -8,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <dirent.h>
 
 #define OK 10
@@ -24,7 +26,7 @@ typedef struct {
     char bid_value[10];
     char bid_date[20];
     char bid_time[20];
-    char bid_sec_time[10];
+    char bid_sec_time[15];
     int last_bid;
 } bid;
 
@@ -37,7 +39,7 @@ typedef struct {
     char start_date[20];
     char start_time[20];
     char time_active[10];
-    char start_fulltime[10];
+    char start_fulltime[15];
     
     bid bids[51];
     char end_date[20];
@@ -48,6 +50,20 @@ typedef struct {
 
 //FUNCOES BASE-------------------------------------------------------------------------------------------------------------------------------------------
 
+int create_file(const char *file_path, char *buffer) {
+    FILE* file = fopen(file_path, "w");
+    if (file == NULL) {
+        printf("Error creating password file");
+        return -1;
+    }
+    if (fwrite(buffer, 1, strlen(buffer), file) == -1) {  
+        printf("Error writing password file");
+        fclose(file);
+        return -1;
+    }
+    fclose(file);
+    return 1;
+}
 int read_file(const char *file_path, char *buffer, int buffer_size) {
     FILE *fp = fopen(file_path, "r");
     if (fp == NULL) {
@@ -109,6 +125,7 @@ int delete_file(const char *file_path) {
     }
 }
 
+
 int create_directory(const char *dir_path) {
     int status = mkdir(dir_path, S_IRWXU | S_IRWXG);
     if (status == -1) {
@@ -130,7 +147,7 @@ int is_password_correct(const char * file_path, char *password){
         free(p);
         return 1;
     } else {
-        printf("Password is incorrect.\n");
+        printf("Password is incorrect. %s vs %s\n", p, password);
         free(p);
         return 0;
     }
@@ -156,6 +173,32 @@ int is_auction_active(char *auction_id) {
         printf("Auction is not active.\n");
         return 0;
     }
+}
+
+//returns 
+char* get_seconds_elapsed() {
+    time_t current_time;
+    time(&current_time);
+    char *time_string = malloc(12 * sizeof(char));
+    snprintf(time_string, 12, "%ld", (long)current_time);
+
+    return time_string;
+}
+
+char* get_date() {
+    time_t fulltime;
+    struct tm *current_time;
+    char *time_string = malloc(25 * sizeof(char));
+    memset(time_string, '\0', 25);
+
+    time(&fulltime);
+
+    current_time = gmtime(&fulltime);
+
+    sprintf(time_string,"%4d-%02d-%02d %02d:%02d:%02d", current_time->tm_year + 1900, current_time->tm_mon + 1, current_time->tm_mday, 
+                                                        current_time->tm_hour, current_time->tm_min, current_time->tm_sec);
+
+    return time_string;
 }
 
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
@@ -195,9 +238,11 @@ int login_user(char username[10], char pass[10]) {
         sprintf(bids_dir, "%sBIDDED/", user_directory);
         
         if (create_directory(hosted_dir) == -1) {
+            delete_all(user_directory);
             return -1;
         }
         if (create_directory(bids_dir) == -1) {
+            delete_all(user_directory);
             return -1;
         }
     } else {
@@ -208,11 +253,13 @@ int login_user(char username[10], char pass[10]) {
         sprintf(bids_dir, "%sBIDDED/", user_directory);
         if (!directory_exists(hosted_dir)) {
             if (create_directory(hosted_dir) == -1) {
+                delete_all(user_directory);
                 return -1;
             }
         }
         if (!directory_exists(bids_dir)) {
             if (create_directory(bids_dir) == -1) {
+                delete_all(user_directory);
                 return -1;
             }
         }
@@ -231,17 +278,9 @@ int login_user(char username[10], char pass[10]) {
         }
     }
     else{ //registering user
-        FILE* pass_fp = fopen(pass_file, "w");
-        if (pass_fp == NULL) {
-            printf("Error creating password file");
-            return -1;
+        if (create_file(pass_file, pass) == -1) {
+            return NOK;
         }
-        if (fwrite(pass, 1, strlen(pass), pass_fp) == -1) {  
-            printf("Error writing password file");
-            fclose(pass_fp);
-            return -1;
-        }
-        fclose(pass_fp);
     }
 
     // Create the user's login file-------------------------------------------------------------------------------------------------------
@@ -253,17 +292,10 @@ int login_user(char username[10], char pass[10]) {
     }
     sprintf(login_file, "%s/%s_login.txt", user_directory, username);
     printf("%s\n", login_file);
-    FILE* login_fp = fopen(login_file, "w");
-    if (login_fp == NULL) {
-        printf("Error creating login file.\n");
-        return -1;
+    
+    if (create_file(login_file, username) == -1) {  
+        return NOK;
     }
-    if (fwrite(username, 1, strlen(username), login_fp) == -1) {
-        printf("Error writing login file.\n");
-        fclose(login_fp);
-        return -1;
-    }
-    fclose(login_fp);
 
     return 0;
 }
@@ -652,7 +684,7 @@ int get_record(char aid[5], auction *a){
                 printf("ERROR AT DB. Wrong content in end file.\n");
                 return NOK;
             }
-            printf("%s %s %s\n", a->end_date, a->end_time, a->end_sec_time);
+            //printf("%s %s %s\n", a->end_date, a->end_time, a->end_sec_time);
         }
         //printf("last bid: %d\n", a->bids[0].last_bid);
         
@@ -661,21 +693,131 @@ int get_record(char aid[5], auction *a){
     }
 }
 
+// chamar create auction e depois enter asset
+int create_auction(char uid[8], char password[10], char auction_name[20], char start_value[10],  char time_active[10], char file_name[30]) {
+    char auctions_dir[30];
+    char a_dir[50];
+    char bids_dir[60];
+    char asset_dir[60];
+    char aid[4];
+    char user_directory[30];
+    char login_file[50];
+    char pass_file[50];
+    char hosted_dir[50];
+    int len;
+    struct dirent **filelist;
+
+    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(login_file, "%s%s_login.txt", user_directory, uid);
+    sprintf(pass_file, "%s%s_pass.txt", user_directory, uid);
+    sprintf(hosted_dir, "%sHOSTED/", user_directory);
+
+
+    //check login------------------------------------------------
+    if (!directory_exists(user_directory)) {
+        printf("User not registered.\n");
+        return NOK;
+    }
+    else if (!directory_exists(hosted_dir)) {
+        printf("This should not happen. ERROR AT DB.\n");
+        return NOK;
+    }
+    else if (!file_exists(login_file)) {
+        printf("User not logged in.\n");
+        return NLG;
+    }
+    else if (!file_exists(pass_file)) {
+        printf("User is not registered.\n");
+        return NLG;
+    }
+    else if(is_password_correct(pass_file, password) == 0) {
+        return NOK;
+    }
+
+    //check auctions------------------------------------------------
+    strcpy(auctions_dir, "./AUCTIONS/");
+
+    if (!directory_exists(auctions_dir)) {
+        printf("ERROR WITH DB.\n");
+        return NOK;
+    }
+    int number_auctions = scandir(auctions_dir, &filelist, 0, alphasort);
+    if (number_auctions <= 0)
+        return NOK;
+
+    for (int i = 0; i < number_auctions; ++i) {
+        free(filelist[i]);
+    }
+    free(filelist);
+
+    number_auctions -= 2;
+    //printf("number of auctions: %d\n", number_auctions);
+    if (number_auctions >= 999) {
+        printf("Maximum number of auctions reached.\n");
+        return NOK;
+    }
+
+    snprintf(aid, 4, "%03d", number_auctions +1);
+    sprintf(a_dir, "%s%s/", auctions_dir, aid);
+    sprintf(bids_dir, "%sBIDS/", a_dir);
+    sprintf(asset_dir, "%sASSET/", a_dir);
+
+    if (directory_exists(a_dir)) {
+        printf("ERROR WITH DB. Auction already exists.\n");
+        return NOK;
+    }
+    if (create_directory(a_dir) == -1) {
+        return NOK;
+    }
+    if (create_directory(bids_dir) == -1) {
+        delete_all(a_dir);
+        return NOK;
+    }
+    if (create_directory(asset_dir) == -1) {
+        delete_all(a_dir);
+        return NOK;
+    }
+
+    char *start_fulltime = get_seconds_elapsed();
+    char *date_time = get_date();
+
+    char start_file[70];
+    char buffer[140];
+
+    sprintf(buffer, "%s %s %s %s %s %s %s", uid, auction_name, file_name, start_value, time_active, date_time, start_fulltime);
+
+    //printf("buffer: %s\n", buffer);
+    free(start_fulltime);
+    free(date_time);
+
+    sprintf(start_file, "%sSTART_%s.txt", a_dir, aid);
+    
+    if (create_file(start_file, buffer) == -1) {
+        delete_all(a_dir);
+        return NOK;
+    }
+    //sprintf(a_dir, "%s%s/", auctions_dir, aid);
+
+
+}
+
 int main() {
     char username[10] = "234234";
     char password[10] = "23423423";
 
     
-    if (login_user("123123", "12312312") == 0) { 
-        printf("User login successfully.\n");
-    } 
+    //login_user("345345", "34534534");
 
+    //delete_all("./USERS/345345/");
+    printf("create: %d\n", create_auction("234234", "23423423", "auchan", "100", "3600", "file.txt"));
+
+    /*
     auction a;
 
-    /*  SHOW RECORD
-    printf("res: %d\n", get_record("001",&a));
+     // SHOW RECORD
+    printf("res: %d\n", get_record("002",&a));
 
-    printf("INITIAL: %s %s %s %s %s %s %s %s\n", a.host_uid, a.auction_name, a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start_fulltime);
+    printf("I: %s %s %s %s %s %s %s %s\n", a.host_uid, a.auction_name, a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start_fulltime);
 
     int i = 0;
 
@@ -689,8 +831,6 @@ int main() {
         printf("E %s %s %s\n", a.end_date, a.end_time, a.end_sec_time);
     }
     */
-
-
 
     /*if
     char *s = get_user_auctions("234234");  // corrigir!
