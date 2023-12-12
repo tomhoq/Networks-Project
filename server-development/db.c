@@ -17,28 +17,31 @@
 #define NLG 14
 
 #define last 666
+#define UNITIALIZED 667
 
 typedef struct {
     char bidder_UID[10];
     char bid_value[10];
-    char bid_date[10];
-    char bid_time[10];
+    char bid_date[20];
+    char bid_time[20];
     char bid_sec_time[10];
+    int last_bid;
 } bid;
 
 typedef struct {
     char id[10];
     char host_uid[10];
-    char auction_name[30];
+    char auction_name[20];
     char asset_name[30];
     char start_value[10];
-    char start_date[10];
-    char start_time[10];
+    char start_date[20];
+    char start_time[20];
     char time_active[10];
+    char start_fulltime[10];
     
     bid bids[51];
-    char end_date[10];
-    char end_time[10];
+    char end_date[20];
+    char end_time[20];
     char end_sec_time[10];
     int active;
 } auction;
@@ -122,7 +125,6 @@ int is_password_correct(const char * file_path, char *password){
         printf("Error reading password file");
         return -1;
     }
-    printf("%s\n",p);
     if (strcmp(p, password) == 0) {
         printf("Password is correct.\n");
         free(p);
@@ -223,10 +225,8 @@ int login_user(char username[10], char pass[10]) {
         printf("File  already exists: %s\n", pass_file);
 
         if (is_password_correct(pass_file, pass)) {
-            printf("Password is correct.\n");
             exists = 1;
         } else {
-            printf("Password is incorrect.\n");
             return NOK;
         }
     }
@@ -248,18 +248,18 @@ int login_user(char username[10], char pass[10]) {
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
 
     if (file_exists(login_file)) {  //user is logged in already
-        printf("User already logged in\n");
+        printf("User already logged in.\n");
         return NOK;
     }
     sprintf(login_file, "%s/%s_login.txt", user_directory, username);
     printf("%s\n", login_file);
     FILE* login_fp = fopen(login_file, "w");
     if (login_fp == NULL) {
-        printf("Error creating login file\n");
+        printf("Error creating login file.\n");
         return -1;
     }
     if (fwrite(username, 1, strlen(username), login_fp) == -1) {
-        printf("Error writing login file\n");
+        printf("Error writing login file.\n");
         fclose(login_fp);
         return -1;
     }
@@ -288,7 +288,7 @@ int logout(char username[10], char password[10]){
         return UNR;
     } 
     if (!file_exists(pass_file)) {
-        printf("User not registered. No pass_file\n");
+        printf("User not registered. No pass_file.\n");
         return UNR;
     }
     else if (!file_exists(login_file)) {
@@ -328,7 +328,7 @@ int unregister(char username[10], char password[10]){
         return UNR;
     } 
     if (!file_exists(pass_file)) {
-        printf("User not registered. No pass_file\n");
+        printf("User not registered. No pass_file.\n");
         return UNR;
     }
     else if (!file_exists(login_file)) {
@@ -364,7 +364,7 @@ int get_user_auctions(char username[10], auction list[1000]){
         return NOK;
     }
     else if (!directory_exists(hosted_dir)) {
-        printf("This should not happen. ERROR AT DB\n");
+        printf("This should not happen. ERROR AT DB.\n");
         return NOK;
     }
     else if (!file_exists(login_file)) {
@@ -408,7 +408,7 @@ int get_user_auctions(char username[10], auction list[1000]){
         free(filelist);
         
         list[i].active = last;
-        printf("Number of auctions: %d\n", i);
+
         if (i ==0)
             return NOK;
         else
@@ -477,7 +477,7 @@ int get_user_bids(char username[10], auction list[1000]){
         free(filelist);
         
         list[i].active = last;
-        printf("Number of auctions: %d\n", i);
+
         if (i ==0)
             return NOK;
         else
@@ -541,11 +541,13 @@ int get_all_auctions(auction list[1000]){
 
 }
 
-
-int get_record(char aid[5], auction a){
+// para chamar enviar um endereco para uma auction como:        get_record("001", &a);!!!!!
+int get_record(char aid[5], auction *a){
     char auctions_dir[30];
     char a_dir[50];
-    char start_file[50];
+    char bids_dir[70];
+    char start_file[70];
+    char b_dir[90];
     int len;
     struct dirent **filelist;
 
@@ -568,11 +570,94 @@ int get_record(char aid[5], auction a){
         }
         char buffer[140];
         memset(buffer, '\0', sizeof(buffer));
-        read_file(start_file, buffer, sizeof(buffer)-1);
-        printf("%s\n", buffer);
-        strcpy(a.id, aid);
-        sscaf(buffer, "%s %s %s %s %s %s %s", a.host_uid, a.auction_name,
-         a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start);
+        if (read_file(start_file, buffer, sizeof(buffer)-1) == -1) {
+            printf("Error reading start file");
+            return NOK;
+        }
+        if (strlen(buffer) == 0){
+            printf("ERROR AT DB. Empty Start file.\n");
+            return NOK;
+        }
+        strcpy(a->id, aid);
+        if (sscanf(buffer, "%s %s %s %s %s %s %s %s", a->host_uid, a->auction_name,
+        a->asset_name, a->start_value, a->time_active, a->start_date, a->start_time, a->start_fulltime) != 8){
+            printf("ERROR AT DB-> Wrong content in start file->\n");
+            return NOK;
+        }
+
+        //printf("%s %s %s %s %s %s %s %s\n", a->host_uid, a->auction_name, a->asset_name, a->start_value, a->time_active, a->start_date, a->start_time, a->start_fulltime);
+
+        sprintf(bids_dir, "%sBIDS/", a_dir);
+        if (!directory_exists(bids_dir)){
+            printf("ERROR AT DB. No bids directory found.\n");
+            return NOK;
+        }
+
+        int number_bids = scandir(bids_dir, &filelist, 0, alphasort);
+
+        if (number_bids <= 0)
+            return NOK;
+        
+        int j = 0, i = 0;
+        char bid_name[15];
+        while (j<number_bids){
+            len = strlen(filelist[j]->d_name);
+            if (len == 10) {
+                memset(buffer, '\0', sizeof(buffer));
+                memset(b_dir, '\0', sizeof(b_dir));
+                memset(bid_name, '\0', sizeof(bid_name));
+                strncpy(bid_name, filelist[j]->d_name, sizeof(bid_name)-1);
+                sprintf(b_dir, "%s%s", bids_dir, bid_name);
+                if (read_file(b_dir, buffer, sizeof(buffer)-1) == -1) {
+                    printf("Error reading bid file");
+                    return NOK;
+                }
+                if (strlen(buffer) == 0){
+                    printf("ERROR AT DB. Empty bid file.\n");
+                    return NOK;
+                }
+                if (sscanf(buffer, "%s %s %s %s %s", a->bids[i].bidder_UID, a->bids[i].bid_value, a->bids[i].bid_date, a->bids[i].bid_time, a->bids[i].bid_sec_time) != 5){
+                    printf("ERROR AT DB. Wrong content in bid file.\n");
+                    return NOK;
+                }
+                a->bids[i].last_bid = 0;
+
+                //printf("%s %s %s %s %s\n", a->bids[i].bidder_UID, a->bids[i].bid_value, a->bids[i].bid_date, a->bids[i].bid_time, a->bids[i].bid_sec_time);
+                i++;
+            }
+            free(filelist[j]);
+            j++;
+        }
+        free(filelist);
+        //printf("bid to be last: %d\n", i);
+        a->bids[i].last_bid = last;
+
+        char end_file[70];
+        sprintf(end_file, "%sEND_%s.txt", a_dir, aid);
+        if (!file_exists(end_file)) {
+            a->active = 1;
+        } else {   //ficheiro existe logo ir ler
+            a->active = 0;   
+
+            memset(buffer, '\0', sizeof(buffer));
+            if (read_file(end_file, buffer, sizeof(buffer)-1) == -1) {
+                printf("Error reading end file");
+                return NOK;
+            }
+            if (strlen(buffer) == 0) {
+                printf("ERROR AT DB. Empty end file.\n");
+                return NOK;
+            }
+            if (sscanf(buffer, "%s %s %s", a->end_date, a->end_time, a->end_sec_time) != 3){
+                printf("ERROR AT DB. Wrong content in end file.\n");
+                return NOK;
+            }
+            printf("%s %s %s\n", a->end_date, a->end_time, a->end_sec_time);
+        }
+        //printf("last bid: %d\n", a->bids[0].last_bid);
+        
+        return OK;
+            
     }
 }
 
@@ -581,23 +666,29 @@ int main() {
     char password[10] = "23423423";
 
     
-    if (login_user("123123", "12312312") == 0) { // corrigir!
+    if (login_user("123123", "12312312") == 0) { 
         printf("User login successfully.\n");
     } 
-    auction a[1000];
 
-    /*printf("%d\n", get_all_auctions(a));
+    auction a;
+
+    /*  SHOW RECORD
+    printf("res: %d\n", get_record("001",&a));
+
+    printf("INITIAL: %s %s %s %s %s %s %s %s\n", a.host_uid, a.auction_name, a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start_fulltime);
+
     int i = 0;
 
-    while (a[i].active != last)
-    {
-        printf("%s\n", a[i].id);
-        printf("%d\n", a[i].active);
-        i++;
-    }*/
+    while (a.bids[i].last_bid != last)
+    {   
 
-    printf("%d\n", get_record("001", a[0]));
-    
+        printf("B %s %s %s %s %d\n", a.bids[i].bidder_UID, a.bids[i].bid_value, a.bids[i].bid_date, a.bids[i].bid_time, a.bids[i].last_bid);
+        i++;
+    }
+    if (a.active == 0) {
+        printf("E %s %s %s\n", a.end_date, a.end_time, a.end_sec_time);
+    }
+    */
 
 
 
