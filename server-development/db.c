@@ -29,11 +29,13 @@ typedef struct {
 typedef struct {
     char id[10];
     char host_uid[10];
-    char asset_name[15];
+    char auction_name[30];
+    char asset_name[30];
     char start_value[10];
     char start_date[10];
     char start_time[10];
     char time_active[10];
+    
     bid bids[51];
     char end_date[10];
     char end_time[10];
@@ -494,7 +496,7 @@ int get_all_auctions(auction list[1000]){
     strcpy(auctions_dir, "./AUCTIONS/");
 
     if (!directory_exists(auctions_dir)) {
-        printf("User not registered.\n");
+        printf("ERROR WITH DB.\n");
         return NOK;
     }
     else {
@@ -541,7 +543,37 @@ int get_all_auctions(auction list[1000]){
 
 
 int get_record(char aid[5], auction a){
-    
+    char auctions_dir[30];
+    char a_dir[50];
+    char start_file[50];
+    int len;
+    struct dirent **filelist;
+
+    strcpy(auctions_dir, "./AUCTIONS/");
+    sprintf(a_dir, "%s%s/", auctions_dir, aid);
+
+    if (!directory_exists(auctions_dir)) {
+        printf("ERROR WITH DB.\n");
+        return NOK;
+    }
+    if (!directory_exists(a_dir)) {
+        printf("Auction does not exist.\n");
+        return NOK;
+    }
+    else {
+        sprintf(start_file, "%sSTART_%s.txt", a_dir, aid);
+        if (!file_exists(start_file)){
+            printf("ERROR AT DB. No start file found.\n");
+            return NOK;
+        }
+        char buffer[140];
+        memset(buffer, '\0', sizeof(buffer));
+        read_file(start_file, buffer, sizeof(buffer)-1);
+        printf("%s\n", buffer);
+        strcpy(a.id, aid);
+        sscaf(buffer, "%s %s %s %s %s %s %s", a.host_uid, a.auction_name,
+         a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start);
+    }
 }
 
 int main() {
@@ -554,7 +586,7 @@ int main() {
     } 
     auction a[1000];
 
-    printf("%d\n", get_all_auctions(a));
+    /*printf("%d\n", get_all_auctions(a));
     int i = 0;
 
     while (a[i].active != last)
@@ -562,7 +594,9 @@ int main() {
         printf("%s\n", a[i].id);
         printf("%d\n", a[i].active);
         i++;
-    }
+    }*/
+
+    printf("%d\n", get_record("001", a[0]));
     
 
 
