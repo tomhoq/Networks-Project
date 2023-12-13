@@ -1,14 +1,5 @@
 #include "udp.h"
 
-void print_all_characters(const char *input_string) {
-    int i= 1;
-    while (*input_string != '\0') {
-        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
-        input_string++;
-        i++;
-    }
-}
-
 int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
         if (strlen(username) != 6) {
             printf("Username must have 6 characters.\n");
@@ -29,7 +20,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
         else {
             for (int i = 0; i < 8; i++) {
                 if (!isalnum(password[i])) {
-                    printf("Invalid pass. Must contain only alphanumeric characters.\n");
+                    printf("Invalid password. Must contain only alphanumeric characters.\n");
                     return -1;
 
                 }
@@ -39,7 +30,7 @@ int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
 
         char message[25]; 
 
-        //IMPORTANTE: Nao esquecer \0, todas as strings tem de ter  um \0 no final
+        //IMPORTANT: Do not forget \0 at the end
         memset(message, '\0', sizeof(message));
         snprintf(message, sizeof(message), "LIN %s %s\n", username, password);
 
@@ -177,7 +168,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     //ler do recvfrom em loop ate nao haver mais nada para ler, vamos ter q usar memoria dinamica 
 
     if(ASIP == NULL || ASport == NULL) {
-        printf("Invalid ASIP or ASport\n");
+        printf("Invalid ASIP or ASport.\n");
         return -1;
     }
 
@@ -185,22 +176,18 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if(fd == -1){
-        printf("Error opening socket\n");
+        printf("Error opening socket.\n");
         return -1;
     }
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET; // IPv4
-    hints.ai_socktype = SOCK_DGRAM; // UDP
-    /*
-    printf("ASIP: %s\n", ASIP);
-    printf("ASport: %s\n", ASport);
-    */
+    hints.ai_socktype = SOCK_DGRAM; // UDP socket
     
     //DEPOIS ALTERAR IP E PORT PARA ASIP E ASport !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     errcode = getaddrinfo(TEJO, "58011", &hints, &res);
     if(errcode != 0) {
-        printf("Error getaddrinfo\n");
+        printf("Error getting address.\n");
         return -1;
     }
 
@@ -210,21 +197,20 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
         printf("Error sending to socket\n");
         return -1;
     }
-    //printf("sent to socket\n");
 
     addrlen = sizeof(addr);
     n = recvfrom(fd, buffer, 5999, 0, (struct sockaddr *) &addr, &addrlen);
 
     //printf("buffer: %s\n", buffer);
     //printf("n: %d\n", n);
-    
     //printf("received from socket\n");
+
     if(n == -1) {
-        printf("Error receviving from socket\n");
+        printf("Error receviving from socket.\n");
         return -1;
     }
 
-    printf("%s\n", buffer);
+    //printf("%s\n", buffer);
     freeaddrinfo(res);
     close(fd);
 
@@ -234,25 +220,25 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     switch(type) {
         case LOGIN:
             if (strcmp(buffer, "RLI OK\n") == 0) {
-                printf("Login successful\n");
+                printf("Login successful.\n");
                 return 1;
             }
             else if (strcmp(buffer, "RLI REG\n") == 0) {
-                printf("Registered user\n");
+                printf("Registered user.\n");
                 return 1;
             }
             else if (strcmp(buffer, "RLI NOK\n") == 0) {
-                printf("Login unsuccessful\n");
+                printf("Login unsuccessful.\n");
                 return -1;
             }
             else {
-                printf("Error receiving answer from AS\n");
+                printf("Unexpected protocol message.\n");
                 return -1;
             }
             break;
         case LOGOUT:
             if (strcmp(buffer, "RLO OK\n") == 0) {
-                printf("Logout successful\n");
+                printf("Logout successful.\n");
                 return 1;
             }
             else if (strcmp(buffer, "RLO NOK\n") == 0) {
@@ -260,11 +246,11 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 return -1;
             }
             else if (strcmp(buffer, "RLI UNR\n") == 0) {
-                printf("Unregistered user\n");
+                printf("Unregistered user.\n");
                 return -1;
             }
             else {
-                printf("Error receiving answer from AS\n");
+                printf("Unexpected protocol message.\n");
                 return -1;
             }
         case UNREGISTER:
@@ -281,7 +267,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 return -1;
             }
             else {
-                printf("Error receiving answer from AS\n");
+                printf("Unexpected protocol message.\n");
                 return -1;
             }
         case LIST:    // This case attends both LST and LMA commands!
@@ -296,13 +282,13 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
              strcmp(arg1, "RMB") == 0 && strcmp(arg2, "OK") == 0))            // mybids
             {
                 if (n != 3) {
-                    printf("Reading list failed\n");
+                    printf("Error reading list.\n");
                     free(arg3);  // Free the original memory before exiting
                     return -1;
                 }
                 if (arg3 == NULL) {
                     // Handle realloc failure
-                    printf("Memory reallocation failed for list\n");
+                    printf("Error reallocating memory for the list.\n");
                     free(arg3);  // Free the original memory before exiting
                     return -1;    // Return an error code
                 } else {
@@ -344,7 +330,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 return -1;
             }
             else {
-                printf("Error receiving answer from AS\n");
+                printf("Unexpected protocol message.\n");
                 return -1;
             }
         case SHOW_RECORD:
@@ -356,16 +342,17 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
 
             n = sscanf(buffer, "%s %s %[^\n]", arg1, arg2, arg3);  // RLS OK <list> or RMA OK <list>
             //printf("arg3: %s\n", arg3);
+            
             //printing lists for LST and LMA
             if (strcmp(arg1, "RRC") == 0 && strcmp(arg2, "OK") == 0){
                 if (n != 3) {
-                    printf("Reading record failed\n");
+                    printf("Error reading record.\n");
                     free(arg3);  // Free the original memory before exiting
                     return -1;
                 }
                 if (arg3 == NULL) {
                     // Handle realloc failure
-                    printf("Memory reallocation failed for record\n");
+                    printf("Error reallocating memory for record.\n");
                     free(arg3);  // Free the original memory before exiting
                     return -1;    // Return an error code
                 } else {
@@ -381,7 +368,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
 
                     //printf("arg3: %s\n", arg3);
                     n = sscanf(arg3, "%s %s %s %s %s %s %s %[^\n]", host_UID, auction_name, asset_name, start_value, start_date, start_time, duration, arg3);
-                    printf("arg3 after start:\n%s\n", arg3);
+                    //printf("arg3 after start:\n%s\n", arg3);
 
 
                     printf("-------------------------- Auction nº %s --------------------------\n", AID);
@@ -444,15 +431,26 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                 return -1;
             }
             else {
-                printf("Error receiving answer from AS\n");
+                printf("Unexpected protocol message.\n");
                 return -1;
             }
 
         
         default:
-            printf("Invalid type\n");
+            printf("Unexpected protocol message.\n");
             return -1;
     }
 
     return 1;
+}
+
+// --- DEBUG ---
+
+void print_all_characters(const char *input_string) {
+    int i= 1;
+    while (*input_string != '\0') {
+        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
+        input_string++;
+        i++;
+    }
 }

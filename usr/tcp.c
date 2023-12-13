@@ -1,229 +1,8 @@
-#include "funcoes_udp.c"
-#include <sys/stat.h>
-#include <fcntl.h>
+#include "tcp.h"
 
-#define TCP_MSG_CHUNK 128
-#define OPEN 5
-#define CLOSE 6
-#define SHOW_ASSET 7
-#define MAKE_BID 8
-
-int open_(char username[7], char password[9], char name[20], char start_value[20], char duration[20], char file_name[20], char ASIP[16], char ASport[6]);
-int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16], char ASport[6]);
-int close_(char username[7], char password[9], char aid[4], char ASIP[16], char ASport[6]);
-int show_asset(char aid[4], char ASIP[16], char ASport[6]);
-int make_bid(char username[7], char password[9], char aid[4], char value[20], char ASIP[16], char ASport[6]);
-
-
-int main (int argc, char* argv[]) {
-    
-    int n;
-    char buffer[128], username[7],password[9];
-    char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
-
-    char ASIP[16]; // n tenho a certeza se 16 é o suficiente
-    char ASport[6];
-
-    //set username as row of \0
-    memset(username, '\0', sizeof(username));
-    memset(password, '\0', sizeof(password));
-    memset(ASIP, '\0', sizeof(ASIP));
-    memset(ASport, '\0', sizeof(ASport));
-    
-    //input processing
-    if (argc == 1) {
-        strcpy(ASIP, "localhost");
-        strcpy(ASport, PORT);
-    }
-    else if (argc == 3) {
-        if (strcmp(argv[1], "-n") == 0) {
-            strcpy(ASIP, argv[2]);
-            strcpy(ASport, PORT);
-        }
-        else if (strcmp(argv[1], "-p") == 0) {
-            strcpy(ASIP, "localhost");
-            strcpy(ASport, argv[2]);
-        }
-        else {
-            printf("Invalid arguments\n");
-            exit(1);
-        }
-    }
-    else if (argc == 5) {
-        if (strcmp(argv[1], "-n") == 0 && strcmp(argv[3], "-p") == 0) {
-            strcpy(ASIP, argv[2]);
-            strcpy(ASport, argv[4]);
-        }
-        else if (strcmp(argv[1], "-p") == 0 && strcmp(argv[3], "-n") == 0) {
-            strcpy(ASIP, argv[4]);
-            strcpy(ASport, argv[2]);
-        }
-        else {
-            printf("Invalid arguments\n");
-            exit(1);
-        }
-    }
-    else {
-        printf("Invalid arguments\n");
-        exit(1);
-    }
-
-
-    //user input
-    while (1) {
-
-        memset(function, '\0', sizeof(function));
-        memset(arg1, '\0', sizeof(arg1));
-        memset(arg2, '\0', sizeof(arg2));
-        memset(arg3, '\0', sizeof(arg3));
-        memset(arg4, '\0', sizeof(arg4));
-        memset(buffer, '\0', sizeof(buffer));
-
-        fgets(buffer, 128, stdin);
-        
-        n = sscanf(buffer, "%s %s %s %s %s", function, arg1, arg2, arg3, arg4);
-        //printf("function: %s, arg1: %s, arg2: %s\n", function, arg1, arg2);
-
-        //ignore just to avoid warning
-        if (n == 0) {}
-
-        if (strcmp(function, "exit") == 0) {
-            exit_program(username);
-        }
-        else if (strcmp(function, "login") == 0) {
-            if (username[0] != '\0') {
-                printf("You are already logged in. Stop.\n");
-                continue;
-            }
-
-            if (login(arg1, arg2, ASIP, ASport) == 1){
-                strncpy(username, arg1, 6);
-                strncpy(password, arg2, 8);
-            }
-
-        }
-        else if (strcmp(function, "logout") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            if (logout(username, password, ASIP, ASport) ==-1){
-                printf("Error logging out\n");
-            }
-            else {
-                memset(username, '\0', sizeof(username));
-                memset(password, '\0', sizeof(password));
-            }
-
-        }
-        else if (strcmp(function, "unregister") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            if (unregister(username, password, ASIP, ASport) ==-1){
-                printf("Error unregistering\n");
-            }
-            else {
-                memset(username, '\0', sizeof(username));
-                memset(password, '\0', sizeof(password));
-            }
-        }
-        else if (strcmp(function, "open") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            else if (n != 5){
-                printf("Invalid arguments\n");
-                continue;
-            }
-            else if (open_(username, password, arg1, arg2, arg3, arg4, ASIP, ASport) == -1) {
-                printf("Error opening auction\n");
-                continue;
-            }
-        }
-        else if (strcmp(function, "close") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            else if (n != 2){
-                printf("Invalid arguments\n");
-                continue;
-            }
-            else if (close_(username, password, arg1, ASIP, ASport) == -1) {
-                printf("Error closing auction\n");
-                continue;
-            }
-        }
-        else if (strcmp(function, "list") == 0 || strcmp(function,"l") == 0) {
-            if(list_(ASIP, ASport) == -1) {
-                printf("Error getting list\n");
-                continue;
-            }
-        }
-        else if (strcmp(function, "myauctions") == 0 || strcmp(function,"ma") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            if (myauctions(username, ASIP, ASport) == -1) {
-                printf("Error getting auctions\n");
-                continue;
-            }
-        }
-        else if (strcmp(function, "mybids") == 0 || strcmp(function,"mb") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            if (mybids(username, ASIP, ASport) == -1) {
-                printf("Error getting auctions\n");
-                continue;
-            }
-        }
-        else if (strcmp(function, "show_asset") == 0 || strcmp(function,"sa") == 0) {
-            if (n == 2){
-                if (show_asset(arg1, ASIP, ASport) == -1) {
-                    printf("Error showing asset\n");
-                    continue;
-                }
-            }
-            else
-                printf("Invalid format\n");
-            //show_asset(token);
-        }
-        else if (strcmp(function, "bid") == 0 || strcmp(function,"b") == 0) {
-            if (username[0] == '\0') {
-                printf("You are not logged in. Stop.\n");
-                continue;
-            }
-            if (make_bid(username, password, arg1, arg2, ASIP, ASport)==-1) {
-                printf("Error making bid\n");
-                continue;
-            }
-        }
-        else if ((strcmp(function, "show_record") == 0 || strcmp(function,"sr") == 0)) {
-            if (n == 2){
-                if (show_record(arg1, ASIP, ASport) == -1) {
-                    printf("Error showing record of auction\n");
-                    continue;
-                }
-            }
-            else
-                printf("You must specify an Auction ID\n");
-        }
-        else {
-            printf("Invalid command\n");
-        }
-    }
-
-    return 0;
-
-}
 int open_(char username[7], char password[9], char name[20], char file_name[20], char start_value[20], char duration[20], char ASIP[16], char ASport[6]) {
-    printf("%s %s %s %s %s %s\n", name, file_name, start_value, duration, ASIP, ASport);
+    
+    //printf("%s %s %s %s %s %s\n", name, file_name, start_value, duration, ASIP, ASport);
 
     if (strlen(name) > 10) {
             printf("Auction name must have no more than 10 characters.\n");
@@ -284,17 +63,17 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
     struct stat st;
     size_t size;
     if (stat(file_name, &st) != 0) {
-        printf("Error getting file size\n");
+        printf("Error getting file size.\n");
         fclose(file);
         return -1;
     }
     size = st.st_size;
     if (size > 10000000) {
-        printf("File size must be less than 10MB\n");
+        printf("File size must be less than 10MB.\n");
         fclose(file);
         return -1;
     }
-    printf("The size of the file is %ld bytes.\n", size);
+    //printf("The size of the file is %ld bytes.\n", size);
 
     // Allocate memory to store the file content
     unsigned char *file_content = malloc((size+1)); // +1 for the \0
@@ -318,7 +97,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
 
     char *message = (char *) malloc((size+100)*sizeof(char));
     if (message == NULL) {
-        perror("Error allocating memory");
+        perror("Error allocating memory.\n");
         free(file_content);
         fclose(file);
         return -1;
@@ -331,11 +110,11 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
     memcpy(message + intro_size, file_content, size);
 
     free(file_content);
-    printf("message: %s\n", message);
+    //printf("message: %s\n", message);
 
     int n = communicate_tcp(OPEN, message, intro_size +size, ASIP, ASport);
     if (n == -1) {
-        printf("Error communicating with AS\n");
+        printf("Error communicating with AS.\n");
         free(message);
         return -1;
     }
@@ -354,7 +133,7 @@ int close_(char username[7], char password[9], char aid[4], char ASIP[16], char 
 
     int n = communicate_tcp(CLOSE, message, message_length,ASIP, ASport);
     if (n == -1) {
-        printf("Error communicating with AS\n");
+        printf("Error communicating with AS.\n");
         return -1;
     }
 
@@ -388,7 +167,7 @@ int make_bid(char username[7], char password[9], char aid[4], char value[20], ch
 
     int n = communicate_tcp(MAKE_BID, message, message_length, ASIP, ASport);
     if (n == -1) {
-        printf("Error communicating with AS\n");
+        printf("Error communicating with AS.\n");
         return -1;
     }
     
@@ -406,7 +185,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1){
-        printf("Error creating socket\n");
+        printf("Error creating socket.\n");
         return -1;
     }
 
@@ -419,13 +198,13 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
     //DEPOIS ALTERAR IP E PORT PARA ASIP E ASport !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     errcode = getaddrinfo(TEJO, "58011", &hints, &res);
     if(errcode != 0){
-        printf("Error getting address info\n");
+        printf("Error getting address.\n");
         return -1;
     }
 
     n = connect(fd, res->ai_addr, res->ai_addrlen);
     if(n == -1){
-        printf("Error connecting\n");
+        printf("Error in connecting.\n");
         return -1;
     }
 
@@ -436,21 +215,21 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         size_t to_send = remaining > TCP_MSG_CHUNK ? TCP_MSG_CHUNK : remaining;
 
         n = write(fd, message + total_sent, to_send);
-        printf("%.*s", n, message + total_sent);
+        //printf("%.*s", n, message + total_sent);
         if (n == -1) {
-            printf("Error writing\n");
+            printf("Error writing.\n");
             return -1;
         }
 
         total_sent += n;
     }
-    printf("total_sent: %ld\n", total_sent);
+    //printf("total_sent: %ld\n", total_sent);
 
     size_t total_read = 0;
     while (1) {
         ssize_t n = read(fd, buffer + total_read, buffer_size - total_read);
         if (n == -1) {
-            printf("Error reading\n");
+            printf("Error reading.\n");
             free(buffer);
             return -1;
         } else if (n == 0) { // End of file, no more data to read
@@ -461,7 +240,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             buffer_size *= 2;
             char *temp_buffer = (char *) realloc(buffer, buffer_size * sizeof(char));
             if (temp_buffer == NULL) {
-                printf("Memory reallocation failed\n");
+                printf("Memory reallocation failed.\n");
                 free(buffer);
                 return -1;
             }
@@ -485,7 +264,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             for (int i = 0; i < 3; i++)
             {
                 if (AID[i] < '0' || AID[i] > '9'){
-                    printf("Received Impossible AID\n");
+                    printf("Invalid AID.\n");
                     return -1;
                 }
             }
@@ -493,16 +272,16 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             return 1;
         }
         else if (strcmp(buffer, "ROA NOK\n") == 0){
-            printf("Error opening auction\n");
+            printf("Error opening auction.\n");
             return -1;
         }
         else if (strcmp(buffer, "ROA NLG\n") == 0)
         {
-            printf("User not logged in\n");
+            printf("You are not logged in. Stop.\n");
             return -1;
         }
         else {
-            printf("Error receiving answer from AS\n");
+            printf("Unexpected protocol message.\n");
             return -1;
         }
         break;
@@ -514,21 +293,21 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
 
         int j = sscanf(buffer, "%s %s", arg1,arg2);
         if (strcmp(arg1, "RCL") == 0 && strcmp(arg2, "OK") == 0 && j==2){
-            printf("Auction closed\n");
+            printf("Auction closed.\n");
             return 1;
         }
         else if (strcmp(buffer, "RCL NOK\n") == 0){
-            printf("Error closing auction\n");
+            printf("Error closing auction.\n");
             return -1;
         }
         else if (strcmp(buffer, "RCL NLG\n") == 0)
         {
-            printf("User not logged in\n");
+            printf("You are not logged in. Stop.\n");
             return -1;
         }
         else if (strcmp(buffer, "RCL EAU\n") == 0)
         {
-            printf("Auction does not exist\n");
+            printf("Auction does not exist.\n");
             return -1;
         }
         else if (strcmp(buffer, "RCL EOW\n") == 0)
@@ -538,11 +317,11 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         }
         else if (strcmp(buffer, "RCL END\n") == 0)
         {
-            printf("Auction has already finished\n");
+            printf("Auction has already finished.\n");
             return -1;
         }
         else {
-            printf("Invalid AID\n");
+            printf("Unexpected protocol message.\n");
             return -1;
         }
         break;
@@ -554,15 +333,15 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         memset(Fname, '\0', sizeof(Fname));
         memset(Fsize, '\0', sizeof(Fsize));
 
-        printf("buffer test1: %s\n", buffer);
+        //printf("buffer test1: %s\n", buffer);
         int j = sscanf(buffer, "%s %s %s %s%*[ ]%[^]", arg1,arg2, Fname, Fsize, buffer);
         int Fbytes = atoi(Fsize);
-        printf("arg1: %s, arg2: %s\n", arg1, arg2);
-        printf("buffer test2: %s\n", buffer);
+        //printf("arg1: %s, arg2: %s\n", arg1, arg2);
+        //printf("buffer test2: %s\n", buffer);
         
         char *Fdata = (char *) malloc((Fbytes+1)*sizeof(char));  
         if (Fdata == NULL) {
-            perror("Error allocating memory");
+            perror("Error allocating memory.\n");
             return -1;
         }
         memset(Fdata, '\0', Fbytes+1);
@@ -570,36 +349,37 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         int offset = strlen(arg1) + strlen(arg2) + strlen(Fname) + strlen(Fsize) + 4;
         memcpy(Fdata, buffer + offset, Fbytes);
 
-        printf("DATA: %s\n", Fdata);
+        //printf("DATA: %s\n", Fdata);
 
         if(strcmp(arg1, "RSA") == 0 && strcmp(arg2, "OK") == 0){
 
-            printf("Trying to write asset...\n");
+            printf("Fetching asset...\n");
 
             //por freesss
             char path[40];
             memset(path, '\0', sizeof(path));
             snprintf(path, sizeof(path), "./assets/%s", Fname);
 
-            printf("path: %s\n", path);
+            //printf("path: %s\n", path);
 
             FILE *file = fopen(path, "w");  // Open the file in binary mode
             if (file == NULL) {
                 file = fopen(path, "w+"); // Create the file if it doesn't exist
             }
             if (file == NULL) {
-                perror("Error opening file");
+                perror("Error opening file.\n");
                 free(buffer);
                 free(Fdata);
                 return -1;
             }
 
             // Write the file content
-            printf("Fbytes: %d\n", Fbytes);
+            
+            //printf("Fbytes: %d\n", Fbytes);
             int read_size = (int) fwrite(Fdata, 1, Fbytes, file);
-            printf("read_size: %d\n", read_size);
+            //printf("read_size: %d\n", read_size);
             if (read_size != Fbytes) {
-                perror("Error reading file");
+                perror("Error reading file.\n");
                 free(buffer);
                 free(Fdata);
                 fclose(file);
@@ -612,13 +392,13 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             return 1;
         }
         else if (strcmp(arg1, "RSA") == 0 && strcmp(arg2, "NOK") == 0 && j==4){
-            printf("Error showing asset\n");
+            printf("Error showing asset.\n");
             free(buffer);
             free(Fdata);
             return -1;
         }
         else {
-            printf("Unexpected protocol message\n");
+            printf("Unexpected protocol message.\n");
             free(buffer);
             free(Fdata);
             return -1;
@@ -627,19 +407,19 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
     }
     case MAKE_BID: {
         if (strcmp(buffer, "RBD ACC\n") == 0) {
-            printf("Bid made\n");
+            printf("Bid accepted.\n");
             return 1;
         }
         else if (strcmp(buffer, "RBD NOK\n") == 0) {
-            printf("Auction not active\n");
+            printf("Auction not active.\n");
             return -1;
         }
         else if (strcmp(buffer, "RBD NLG\n") == 0) {
-            printf("User not logged in\n");
+            printf("You are not logged in. Stop.\n");
             return -1;
         }
         else if (strcmp(buffer, "RBD REF\n") == 0) {
-            printf("Your bid must be greater than current bid\n");
+            printf("Your bid must be greater than current bid.\n");
             return -1;
         }
         else if (strcmp(buffer, "RBD ILG\n") == 0) {
@@ -647,20 +427,19 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             return -1;
         }
         else if (strcmp(buffer, "RBD EBD\n") == 0) {
-            printf("Bid is lower than the current highest bid\n");
+            printf("Bid is lower than the current highest bid.\n");
             return -1;
         }
         else {
-            printf("Invalid format\n");
+            printf("Unexpected protocol message.\n");
             return -1;
         }
         break;
     }
     default:
-        printf("Error communicating with AS\n");
+        printf("Unexpected protocol message.\n");
         break;
     }
 
     return 1;
 }
-

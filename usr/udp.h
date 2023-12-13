@@ -1,16 +1,3 @@
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <netdb.h>
-#include <ctype.h>
-#define PORT "58150"
-#define TEJO "tejo.tecnico.ulisboa.pt"
-
 #define MAX_UDP_RCVSIZE 10001
 
 #define LOGIN 0
