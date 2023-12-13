@@ -521,6 +521,8 @@ int get_user_auctions(char username[10], auction list[1000]){
                     // Found a dot, extract basename and extension
                     strncpy(id, filelist[j]->d_name, lastDot - filelist[j]->d_name);
                     strcpy(list[i].id, id);
+    
+                    check_validity(id);  //closes auction if duration has finished
 
                     sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
                     if (file_exists(end_file)) {
@@ -591,6 +593,9 @@ int get_user_bids(char username[10], auction list[1000]){
                     strncpy(id, filelist[j]->d_name, lastDot - filelist[j]->d_name);
                     strcpy(list[i].id, id);
 
+                    check_validity(id);  //closes auction if duration has finished
+
+
                     sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
                     if (file_exists(end_file)) {
                         list[i].active = 0;
@@ -643,9 +648,11 @@ int get_all_auctions(auction list[1000]){
             memset(id, '\0', sizeof(id));
             len = strlen(filelist[j]->d_name);
             if (len == 3) {
-                printf("%s\n", filelist[j]->d_name);
+                //printf("%s\n", filelist[j]->d_name);
                 strncpy(id, filelist[j]->d_name, 3);
                 strcpy(list[i].id, id);
+
+                check_validity(id);  //closes auction if duration has finished
 
                 sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
                 if (file_exists(end_file)) {
@@ -663,7 +670,7 @@ int get_all_auctions(auction list[1000]){
         free(filelist);
         
         list[i].active = last;
-        printf("Number of auctions: %d\n", i);
+        //printf("Number of auctions: %d\n", i);
         if (i ==0)
             return NOK;
         else
@@ -684,6 +691,8 @@ int get_record(char aid[5], auction *a){
 
     strcpy(auctions_dir, "./AUCTIONS/");
     sprintf(a_dir, "%s%s/", auctions_dir, aid);
+
+    check_validity(aid);  //closes auction if duration has finished
 
     if (!directory_exists(auctions_dir)) {
         printf("ERROR WITH DB.\n");
@@ -719,6 +728,7 @@ int get_record(char aid[5], auction *a){
         //printf("%s %s %s %s %s %s %s %s\n", a->host_uid, a->auction_name, a->asset_name, a->start_value, a->time_active, a->start_date, a->start_time, a->start_fulltime);
 
         sprintf(bids_dir, "%sBIDS/", a_dir);
+        //printf("bids_dir: %s\n", bids_dir);
         if (!directory_exists(bids_dir)){
             printf("ERROR AT DB. No bids directory found.\n");
             return NOK;
@@ -937,7 +947,6 @@ int close_auction(char uid[10], char password[10], char aid[5]){
     else if(is_password_correct(pass_file, password) == 0) {
         return NOK;
     }
-    printf("%s\n", hosted_auction);
     if (!folder_exists(a_dir)) {
         printf("Auction does not exist.\n");
         return EAU;
@@ -957,7 +966,6 @@ int close_auction(char uid[10], char password[10], char aid[5]){
         free(date);
         free(secs);
 
-        printf("buffer: %s\n", buffer);
 
         if (create_file(end_file, buffer) == -1) {
             printf("Error creating end file");
@@ -975,9 +983,13 @@ int main() {
     
     login_user("345345", "34534534");
 
+    
+
+    
+
     //delete_all("./USERS/345345/");
     //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "10000", "file.txt"));
-    printf("%d\n", close_auction(username, password, "003"));
+    //printf("%d\n", close_auction(username, password, "003"));
 
     /*
     auction a;
@@ -999,8 +1011,20 @@ int main() {
         printf("E %s %s %s\n", a.end_date, a.end_time, a.end_sec_time);
     }
     */
+   
 
-    /*if
+    /*
+    
+    auction a[100];
+    printf("%d\n", get_all_auctions(a));
+
+    int i = 0;
+    while (a[i].active != last)
+    {   
+        printf("%s %d\n", a[i].id, a[i].active);
+        i++;
+    }
+    
     char *s = get_user_auctions("234234");  // corrigir!
     printf("Auctions: %s\n", s);
     free(s);
