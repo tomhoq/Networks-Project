@@ -182,6 +182,8 @@ int is_password_correct(const char * file_path, char *password){
         printf("Error reading password file");
         return -1;
     }
+    //printf("%s vs %s\n", p, password);
+
     if (strcmp(p, password) == 0) {
         printf("Password is correct.\n");
         free(p);
@@ -238,7 +240,7 @@ int check_validity(char *auction_id){
 
         //printf("time_active_int: %d\n", time_active_int);
         //printf("start_fulltime_int: %d\n", start_fulltime_int);
-        printf("old?: %d\n", current_time_int - (start_fulltime_int + time_active_int));
+        //printf("old?: %d\n", current_time_int - (start_fulltime_int + time_active_int));
 
         if (current_time_int > (start_fulltime_int + time_active_int)) {
             printf("Auction is not active.\n");
@@ -388,7 +390,6 @@ int login_user(char username[10], char pass[10]) {
         printf("User already logged in.\n");
         return NOK;
     }
-    sprintf(login_file, "%s/%s_login.txt", user_directory, username);
     printf("%s\n", login_file);
     
     if (create_file(login_file, username) == -1) {  
@@ -936,11 +937,12 @@ int close_auction(char uid[10], char password[10], char aid[5]){
     else if(is_password_correct(pass_file, password) == 0) {
         return NOK;
     }
+    printf("%s\n", hosted_auction);
     if (!folder_exists(a_dir)) {
         printf("Auction does not exist.\n");
         return EAU;
     } else if (!file_exists(hosted_auction)) {
-        printf("%s\n", a_dir);
+        printf("User is not hosting this auction.\n");
         return EOW;
     } 
     if (!is_auction_active(aid)) { //closes auction if duration has finished
@@ -971,11 +973,11 @@ int main() {
     char password[10] = "23423423";
 
     
-    //login_user("345345", "34534534");
+    login_user("345345", "34534534");
 
     //delete_all("./USERS/345345/");
-    //printf("create: %d\n", create_auction("234234", "23423423", "auchan", "100", "100", "file.txt"));
-    printf("%d\n", close_auction(username, password, "004"));
+    //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "10000", "file.txt"));
+    printf("%d\n", close_auction(username, password, "003"));
 
     /*
     auction a;
