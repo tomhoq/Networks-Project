@@ -231,12 +231,14 @@ int check_validity(char *auction_id){
         }
 
         // convert to int and compare with current time
+        char *secs = get_seconds_elapsed();
         int time_active_int = atoi(time_active);
         int start_fulltime_int = atoi(start_fulltime);
-        int current_time_int = atoi(get_seconds_elapsed());
+        int current_time_int = atoi(secs);
 
         free(start_fulltime);
         free(time_active);
+        free(secs);
 
         //printf("time_active_int: %d\n", time_active_int);
         //printf("start_fulltime_int: %d\n", start_fulltime_int);
@@ -246,19 +248,31 @@ int check_validity(char *auction_id){
             printf("Auction is not active.\n");
             sprintf(end_file, "%sEND_%s.txt", auction_directory, auction_id);
             memset(buffer, '\0', sizeof(buffer));
-            char *date = get_date();
-            char *secs = get_seconds_elapsed();
-            sprintf(buffer, "%s %s", date, secs);
-            free(date);
-            free(secs);
+            
+            time_t fulltime = start_fulltime_int + time_active_int;
+            struct tm *current_time = localtime(&fulltime);
+            char time_str[25];
 
-            printf("buffer: %s\n", buffer);
 
-            if (create_file(end_file, buffer) == -1) {
-                printf("Error creating end file");
+            if (current_time != NULL) {
+                sprintf(time_str,"%4d-%02d-%02d %02d:%02d:%02d",
+                        current_time->tm_year + 1900, current_time->tm_mon + 1, current_time->tm_mday, 
+                        current_time->tm_hour, current_time->tm_min, current_time->tm_sec);
+
+                sprintf(buffer, "%s %d", time_str, (start_fulltime_int + time_active_int));
+
+                printf("buffer: %s\n", buffer);
+
+                if (create_file(end_file, buffer) == -1) {
+                    printf("Error creating end file");
+                    return -1;
+                }
+            } else {
+                printf("Error converting time.\n");
                 return -1;
             }
-            return 0; // auction not active
+
+            return 0;
         } else {
             printf("Auction is active.\n");
             return 1;
@@ -300,6 +314,39 @@ int is_auction_active(char *auction_id) {
     }
 }
 
+char* get_asset_name(char aid[5]) {
+    char auction_directory[30];
+    char start_file[50];
+    char buffer[140];
+    char *asset_name = (char *) malloc(30 * sizeof(char));
+    memset(asset_name, '\0', 30);
+    
+    sprintf(auction_directory, "./AUCTIONS/%s/", aid);
+    sprintf(start_file, "%sSTART_%s.txt", auction_directory, aid);   
+
+    if (!directory_exists(auction_directory)) {
+        printf("Directory does not exist\n");
+        return NULL;
+    } else if (!file_exists(start_file)) {
+        printf("Start file does not exist\n");
+        return NULL;
+    } else {
+        memset(buffer, '\0', sizeof(buffer));
+        if (read_file(start_file, buffer, sizeof(buffer)-1) == -1) {
+            printf("Error reading start file");
+            return NULL;
+        }
+        if (strlen(buffer) == 0){
+            printf("ERROR AT DB. Empty Start file.\n");
+            return NULL;
+        }
+        if (sscanf(buffer, "%*s %*s %s", asset_name) != 1){
+            printf("ERROR AT DB-> Wrong content in start file->\n");
+            return NULL;
+        }
+        return asset_name;
+    }
+}
 
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -975,6 +1022,67 @@ int close_auction(char uid[10], char password[10], char aid[5]){
     }
 }
 
+int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10]){
+    char user_directory[30];
+    char login_file[50];
+    char pass_file[50];
+    char hosted_dir[50];
+    char hosted_auction[70];
+    char a_dir[25];
+    char bids_dir[60];
+    char bid_file[70];
+    char buffer[140];
+    char *date = get_date();
+    char *secs = get_seconds_elapsed();
+
+    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(login_file, "%s%s_login.txt", user_directory, uid);
+    sprintf(pass_file, "%s%s_pass.txt", user_directory, uid);
+    sprintf(hosted_dir, "%sHOSTED/", user_directory);
+    sprintf(hosted_auction, "%s%s.txt", hosted_dir, aid);
+    sprintf(a_dir, "./AUCTIONS/%s/", aid);
+    sprintf(bids_dir, "%sBIDS/", a_dir);
+    sprintf(bid_file, "%s%s.txt", bids_dir, uid);
+
+    //check login------------------------------------------------
+    if (!directory_exists(user_directory)) {
+        printf("User not registered.\n");
+        return NLG;
+    }
+    else if (!file_exists(login_file)) {
+        printf("User not logged in.\n");
+        return NLG;
+    }
+    else if (!file_exists(pass_file)) {
+        printf("User is not registered.\n");
+        return NLG;
+    }
+    else if(is_password_correct(pass_file, password) == 0) {
+        return NOK;
+    }
+    if (!folder_exists(a_dir)) {
+        printf("Auction does not exist.\n");
+        return NOK;
+    } else if (!file_exists(hosted_auction)) {
+        printf("User is not hosting this auction.\n");
+        return NOK;
+    } 
+    if (!is_auction_active(aid)) { //closes auction if duration has finished
+        return END;
+    } else {
+        memset(buffer, '\0', sizeof(buffer));
+        sprintf(buffer, "%s %s %s %s %s", uid, bid_value, date, secs, secs);
+        free(date);
+        free(secs);
+
+        if (create_file(bid_file, buffer) == -1) {
+            printf("Error creating bid file");
+            return NOK;
+        }
+        return OK;
+    }
+}
+
 
 int main() {
     char username[10] = "234234";
@@ -982,14 +1090,14 @@ int main() {
 
     
     login_user("345345", "34534534");
-
-    
-
+    char *s= get_asset_name("004");
+    printf("%s\n", s);
+    free(s);
     
 
     //delete_all("./USERS/345345/");
-    //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "10000", "file.txt"));
-    //printf("%d\n", close_auction(username, password, "003"));
+    //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "15", "file.txt"));
+    printf("%d\n", close_auction("345345", "34534534", "006"));
 
     /*
     auction a;
