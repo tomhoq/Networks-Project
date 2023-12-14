@@ -20,6 +20,9 @@
 #define EAU 15
 #define EOW 16
 #define END 17
+#define ILG 18
+#define REF 19
+#define ACC 20
 
 #define last 666
 #define UNITIALIZED 667
@@ -346,6 +349,50 @@ char* get_asset_name(char aid[5]) {
         }
         return asset_name;
     }
+}
+
+int is_bid_greater(char aid[5], char bid_value[10]){
+    char bids_dir[50];
+    char start_file[60];
+    char current_bid[10];
+    struct dirent **filelist;
+    memset(current_bid, '\0', sizeof(current_bid));
+    memset(bids_dir, '\0', sizeof(bids_dir));
+    memset(start_file, '\0', sizeof(start_file)); 
+
+    sprintf(bids_dir, "./AUCTIONS/%s/BIDS/", aid);
+    sprintf(start_file, "./AUCTIONS/%s/START_%s.txt", aid, aid);
+
+    int number_files = scandir(bids_dir, &filelist, 0, alphasort);
+    if (number_files <= 0)
+        return -1;
+    if (number_files == 2) { //no bids placed
+        char buffer[140];
+        if (read_file(start_file, buffer, sizeof(buffer)-1) == -1) {
+            printf("Error reading start file");
+            return -1;
+        }
+        sscanf(buffer, "%*s %*s %*s %s", current_bid);        
+    }
+    else {
+        strncpy(current_bid, filelist[number_files-1]->d_name, 6);
+        
+    }
+    printf("current_bid: %s\n", current_bid);
+
+    if (atoi(bid_value) > atoi(current_bid)) {
+            for (int i = 0; i < number_files; ++i) {
+                free(filelist[i]);
+            }
+            free(filelist);
+            return 1;
+        } else {
+            for (int i = 0; i < number_files; ++i) {
+                free(filelist[i]);
+            }
+            free(filelist);
+            return 0;
+        }
 }
 
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
@@ -842,7 +889,6 @@ int get_record(char aid[5], auction *a){
             }
             //printf("%s %s %s\n", a->end_date, a->end_time, a->end_sec_time);
         }
-        //printf("last bid: %d\n", a->bids[0].last_bid);
         
         return OK;
             
@@ -1028,12 +1074,16 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
     char pass_file[50];
     char hosted_dir[50];
     char hosted_auction[70];
+    char user_bidded_file[70];
     char a_dir[25];
     char bids_dir[60];
     char bid_file[70];
     char buffer[140];
     char *date = get_date();
     char *secs = get_seconds_elapsed();
+
+    int v = atoi(bid_value);
+    int a = atoi(aid);
 
     sprintf(user_directory, "./USERS/%s/", uid);
     sprintf(login_file, "%s%s_login.txt", user_directory, uid);
@@ -1042,7 +1092,10 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
     sprintf(hosted_auction, "%s%s.txt", hosted_dir, aid);
     sprintf(a_dir, "./AUCTIONS/%s/", aid);
     sprintf(bids_dir, "%sBIDS/", a_dir);
-    sprintf(bid_file, "%s%s.txt", bids_dir, uid);
+    sprintf(bid_file, "%s%06d.txt", bids_dir, v);
+    sprintf(user_bidded_file, "%sBIDDED/%03d.txt", user_directory, a);
+
+    check_validity(aid);  //closes auction if duration has finished
 
     //check login------------------------------------------------
     if (!directory_exists(user_directory)) {
@@ -1057,29 +1110,50 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
         printf("User is not registered.\n");
         return NLG;
     }
-    else if(is_password_correct(pass_file, password) == 0) {
+    else if(!is_password_correct(pass_file, password)) {
         return NOK;
     }
     if (!folder_exists(a_dir)) {
         printf("Auction does not exist.\n");
         return NOK;
-    } else if (!file_exists(hosted_auction)) {
-        printf("User is not hosting this auction.\n");
-        return NOK;
+    } else if (file_exists(hosted_auction)) {
+        printf("User is hosting this auction.\n");
+        return ILG;
     } 
     if (!is_auction_active(aid)) { //closes auction if duration has finished
-        return END;
-    } else {
+        return NOK;
+    }  
+    else if (!is_bid_greater(aid, bid_value)) {
+        return REF;
+    }
+    else {
         memset(buffer, '\0', sizeof(buffer));
-        sprintf(buffer, "%s %s %s %s %s", uid, bid_value, date, secs, secs);
+        sprintf(buffer, "%s %s %s %s", uid, bid_value, date, secs);
         free(date);
         free(secs);
+
+        if (file_exists(bid_file)) {
+            printf("bid file already exists\n");
+        }
+
+
+        printf("%s\n", bid_file);
 
         if (create_file(bid_file, buffer) == -1) {
             printf("Error creating bid file");
             return NOK;
         }
-        return OK;
+
+        if (!file_exists(user_bidded_file)) {
+            if (create_file(user_bidded_file, "") == -1) {
+                printf("Error creating bid file");
+                return NOK;
+            }
+        }
+        
+        
+        //falta criar ficheiro na pasta do user bidded
+        return ACC;  //por ACC
     }
 }
 
@@ -1087,17 +1161,41 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
 int main() {
     char username[10] = "234234";
     char password[10] = "23423423";
-
     
-    login_user("345345", "34534534");
+    //clear_directory("./USERS/");
+    //clear_directory("./AUCTIONS/");
+    
+    //printf("%d\n", create_bid("123123", "12312312", "001", "999999"));
+    /*
+
+    auction a;
+
+     // SHOW RECORD
+    printf("res: %d\n", get_record("001",&a));
+
+    printf("I: %s %s %s %s %s %s %s %s\n", a.host_uid, a.auction_name, a.asset_name, a.start_value, a.time_active, a.start_date, a.start_time, a.start_fulltime);
+
+    int i = 0;
+
+    while (a.bids[i].last_bid != last)
+    {   
+
+        printf("B %s %s %s %s %s\n", a.bids[i].bidder_UID, a.bids[i].bid_value, a.bids[i].bid_date, a.bids[i].bid_time, a.bids[i].bid_sec_time);
+        i++;
+    }
+    if (a.active == 0) {
+        printf("E %s %s %s\n", a.end_date, a.end_time, a.end_sec_time);
+    }
+
+
     char *s= get_asset_name("004");
     printf("%s\n", s);
     free(s);
-    
+    */
 
     //delete_all("./USERS/345345/");
     //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "15", "file.txt"));
-    printf("%d\n", close_auction("345345", "34534534", "006"));
+    //printf("%d\n", close_auction("345345", "34534534", "006"));
 
     /*
     auction a;
