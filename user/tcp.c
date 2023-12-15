@@ -234,7 +234,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             printf("Error reading.\n");
             free(buffer);
             return -1;
-        } else if (n == 0 || n < buffer_size -total_read) { // End of file, no more data to read
+        } else if (n < buffer_size -total_read) { // End of file, no more data to read
             break;
         }
         total_read += n;
