@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <ctype.h>
-#define PORT "58150"
+#define PORT "58025"
 #define TEJO "tejo.tecnico.ulisboa.pt"
 #include <sys/stat.h>
 #include <fcntl.h>
