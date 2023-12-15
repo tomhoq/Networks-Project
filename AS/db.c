@@ -1157,7 +1157,7 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
     }
 }
 
-
+/*
 int main() {
     char username[10] = "234234";
     char password[10] = "23423423";
@@ -1166,7 +1166,6 @@ int main() {
     //clear_directory("./AUCTIONS/");
     
     //printf("%d\n", create_bid("123123", "12312312", "001", "999999"));
-    /*
 
     auction a;
 
@@ -1246,7 +1245,8 @@ int main() {
     
     printf("logging out\n");
     printf("%d\n", logout("234234", "23423423"));
-    printf("%d\n", unregister("234234", "23423423"));*/
+    printf("%d\n", unregister("234234", "23423423"));
 
     return 0;
 }
+*/

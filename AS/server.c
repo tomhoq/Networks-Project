@@ -12,8 +12,18 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include "db.c"
 #define PORT "58025"
 #define TEJO "tejo.tecnico.ulisboa.pt"
+
+void print_all_characters(const char *input_string) {
+    int i= 1;
+    while (*input_string != '\0') {
+        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
+        input_string++;
+        i++;
+    }
+}
 
 int main (int argc, char* argv[]) {
 
@@ -214,14 +224,52 @@ int main (int argc, char* argv[]) {
                             prt_str[ret-1]='\0';
                         }
                         printf("---UDP socket: %s\n",prt_str);
-                        errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,addrlen,host,sizeof host, service,sizeof service,0);
+                        errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,
+                                addrlen,host,sizeof host, service,sizeof service,0);
+
                         if(errcode==0)
                             printf("       Sent by [%s:%s]\n", host, service);
-                        char buffer[6] = "aaaaaa\0";  
-                        printf("sending\n");
-                        ret = sendto(ufd, buffer,strlen(buffer),0, (struct sockaddr *)&udp_useraddr, addrlen);
+                        
+                        char code[5], arg1[30], arg2[30], arg3[30], answer[6000], l[30];
+                        memset(code, '\0', sizeof(code));
+                        memset(arg1, '\0', sizeof(arg1));
+                        memset(arg2, '\0', sizeof(arg2));
+                        memset(arg3, '\0', sizeof(arg3));
+                        memset(l, '\0', sizeof(l));
+                        n = sscanf(prt_str, "%s %s %s %s", code, arg1, arg2, arg3);
+                        int k, i = 0;
+                        //print_all_characters(prt_str);
+
+                        if (!strcmp(code, "LST")) {
+                            auction a[1001];
+                            strcpy(answer, "RLS");
+                            if(n != 1 || prt_str[strlen(prt_str)-1] != '\n') {
+                                strcat(answer, " ERR\n");
+                            }
+                            else {
+                                k = get_all_auctions(a);
+                                if (k == OK) {
+                                    strcat(answer, " OK");
+                                    while (a[i].active != last)
+                                    {                                            
+                                        snprintf(l, sizeof(l)," %s %d", a[i].id, a[i].active);
+                                        strcat(answer, l);
+                                        i++;
+                                    }
+                                    strcat(answer, "\n");
+                                }
+                                else {
+                                    strcat(answer, " ERR\n");
+                                }
+                            }
+
+                        }
+
+                        printf("sending : %s\n", answer);
+                        ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
                         if (ret < strlen(buffer))
                             printf("Did not send all\n");
+                
                         
                     }
 

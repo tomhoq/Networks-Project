@@ -228,8 +228,8 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
     size_t total_read = 0;
     while (1) {
         ssize_t n = read(fd, buffer + total_read, buffer_size - total_read);
-        printf("%s\n", buffer);
-        printf("%d\n", n);
+        //printf("%s\n", buffer);
+        //printf("%d\n", n);
         if (n == -1) {
             printf("Error reading.\n");
             free(buffer);

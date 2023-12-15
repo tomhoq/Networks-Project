@@ -192,19 +192,17 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
         return -1;
     }
 
-    //print_all_characters(message);
-    n = sendto(fd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
+    n = sendto(fd, message, strlen(message)+1, 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");
         return -1;
     }
 
     addrlen = sizeof(addr);
-    printf("n\n");
 
     n = recvfrom(fd, buffer, 5999, 0, (struct sockaddr *) &addr, &addrlen);
 
-    printf("buffer: %s\n", buffer);
+    //printf("buffer: %s\n", buffer);
     //printf("n: %d\n", n);
     //printf("received from socket\n");
 
