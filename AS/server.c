@@ -145,6 +145,8 @@ int main (int argc, char* argv[]) {
     FD_SET(tcp,&inputs); // Set standard input channel on
     FD_SET(ufd,&inputs); // Set UDP channel on
 
+
+
     //    printf("Size of fd_set: %d\n",sizeof(fd_set));
     //    printf("Value of FD_SETSIZE: %d\n",FD_SETSIZE);
 
@@ -159,6 +161,8 @@ int main (int argc, char* argv[]) {
         // testfds is now '1' at the positions that were activated
         // printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
         memset(prt_str, '\0', sizeof(prt_str));
+        printf("%d\n",out_fds);
+
         switch(out_fds)
         {
             case 0:
@@ -170,25 +174,33 @@ int main (int argc, char* argv[]) {
             default:
                 if(FD_ISSET(tcp,&testfds))
                 {
-                    int newSocket = accept(tcp, NULL, NULL);
-                    if (newSocket == -1) {
+                    //fazer fork aqui
+                    int sock = accept(tcp, NULL, NULL);
+                    if (sock == -1) {
                         perror("TCP socket accept error");
                     } else {
                         addrlen = sizeof(tcp_useraddr);
-                        ret = read(tcp, prt_str, 80);
+                        ret = read(sock, prt_str, 80);
+                        printf("adaw\n");
 
                         if(ret>=0)
                         {
+                            printf("adaw\n");
+
                             if(strlen(prt_str)>0){
-                                printf("overflow\n");
                                 prt_str[ret-1]='\0';
                             }
-                            printf("---UDP socket: %s\n",prt_str);
-                            errcode=getnameinfo( (struct sockaddr *) &tcp_useraddr,addrlen,host,sizeof host, service,sizeof service,0);
+                            printf("---TCP socket: %s\n",prt_str);
+                            errcode=getnameinfo( (struct sockaddr *) &tcp_useraddr,
+                                    addrlen,host,sizeof host, service,sizeof service,0);
                             if(errcode==0)
                                 printf("       Sent by [%s:%s]\n",host,service);
-                            printf("%s\n", prt_str);
+                            
+                            char buffer[6] = "aaaaa\0";
 
+                            ret = write(sock, buffer,sizeof(buffer));
+                            if (ret < sizeof(buffer))
+                                printf("Did not send all\n");
                         }
                     }
                 }
@@ -199,15 +211,20 @@ int main (int argc, char* argv[]) {
                     if(ret>=0)
                     {
                         if(strlen(prt_str)>0){
-                            printf("overflow\n");
                             prt_str[ret-1]='\0';
                         }
                         printf("---UDP socket: %s\n",prt_str);
                         errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,addrlen,host,sizeof host, service,sizeof service,0);
                         if(errcode==0)
-                            printf("       Sent by [%s:%s]\n",host,service);
-                        printf("%s\n", prt_str);
+                            printf("       Sent by [%s:%s]\n", host, service);
+                        char buffer[6] = "aaaaaa\0";  
+                        printf("sending\n");
+                        ret = sendto(ufd, buffer,strlen(buffer),0, (struct sockaddr *)&udp_useraddr, addrlen);
+                        if (ret < strlen(buffer))
+                            printf("Did not send all\n");
+                        
                     }
+
                 }
         }
     }
