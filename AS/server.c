@@ -25,6 +25,26 @@ void print_all_characters(const char *input_string) {
     }
 }
 
+int only_numbers(char *str) {
+    int i = 0;
+    while (str[i] != '\0') {
+        if (str[i] < '0' || str[i] > '9')
+            return 0;
+        i++;
+    }
+    return 1;
+}
+
+int only_alphanumerical(char *str) {
+    int i = 0;
+    while (str[i] != '\0') {
+        if ((str[i] < '0' || str[i] > '9') && (str[i] < 'A' || str[i] > 'Z') && (str[i] < 'a' || str[i] > 'z'))
+            return 0;
+        i++;
+    }
+    return 1;
+}
+
 int main (int argc, char* argv[]) {
 
     // socket variables
@@ -231,6 +251,7 @@ int main (int argc, char* argv[]) {
                             printf("       Sent by [%s:%s]\n", host, service);
                         
                         char code[5], arg1[30], arg2[30], arg3[30], answer[6000], l[30];
+                        memset(answer, '\0', sizeof(answer));
                         memset(code, '\0', sizeof(code));
                         memset(arg1, '\0', sizeof(arg1));
                         memset(arg2, '\0', sizeof(arg2));
@@ -262,7 +283,152 @@ int main (int argc, char* argv[]) {
                                     strcat(answer, " ERR\n");
                                 }
                             }
+                        } else if (!strcmp(code, "LMB")) {
+                            auction a[1001];
+                            strcpy(answer, "RMB");
+                            if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 6 || !only_numbers(arg1)) {
+                                strcat(answer, " ERR\n");
+                            }
+                            else {
+                                k = get_user_bids(arg1, a);
+                                if (k == OK) {
+                                    strcat(answer, " OK");
+                                    while (a[i].active != last)
+                                    {                                            
+                                        snprintf(l, sizeof(l)," %s %d", a[i].id, a[i].active);
+                                        strcat(answer, l);
+                                        i++;
+                                    }
+                                    strcat(answer, "\n");
+                                }
+                                else if (k == NLG) {
+                                    strcat(answer, " NLG\n");
+                                }
+                                else {
+                                    strcat(answer, " NOK\n");
+                                }
+                            }                            
+                        } else if (!strcmp(code, "LMA")) {
+                            auction a[1001];
+                            strcpy(answer, "RMA");
+                            if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 6 || !only_numbers(arg1)) {
+                                strcat(answer, " ERR\n");
+                            }
+                            else {
+                                k = get_user_auctions(arg1, a);
+                                if (k == OK) {
+                                    strcat(answer, " OK");
+                                    while (a[i].active != last)
+                                    {                                            
+                                        snprintf(l, sizeof(l)," %s %d", a[i].id, a[i].active);
+                                        strcat(answer, l);
+                                        i++;
+                                    }
+                                    strcat(answer, "\n");
+                                }
+                                else if (k == NLG) {
+                                    strcat(answer, " NLG\n");
+                                }
+                                else {
+                                    strcat(answer, " NOK\n");
+                                }
+                            }
+                        } else if (!strcmp(code, "SRC")) {
+                            strcpy(answer, "RRC");
 
+                            if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 3 || !only_numbers(arg1)) {
+                                strcat(answer, " ERR\n");
+                            }
+                            else {
+                                auction a;
+                                k = get_record(arg1, &a);
+                                if (k == OK){
+                                    strcat(answer, " OK");
+
+                                    char intro[150], bid[100], end[100];
+                                    memset(intro, '\0', sizeof(intro));
+                                    sprintf(intro, " %s %s %s %s %s %s %s", a.host_uid, a.auction_name, a.asset_name, 
+                                                    a.start_value, a.start_date, a.start_time,  a.time_active);
+                                    strcat(answer, intro);
+
+                                    i = 0;
+                                    while (a.bids[i].last_bid != last)
+                                    {  
+                                        memset(bid, '\0', sizeof(bid));
+                                        sprintf(bid ," B %s %s %s %s %s", a.bids[i].bidder_UID, a.bids[i].bid_value, a.bids[i].bid_date,
+                                                 a.bids[i].bid_time, a.bids[i].bid_sec_time);
+                                        strcat(answer, bid);
+                                        i++;
+                                    }
+                                    if (a.active == 0) {
+                                        memset(end, '\0', sizeof(end));
+                                        sprintf(end," E %s %s %s", a.end_date, a.end_time, a.end_sec_time);
+                                        strcat(answer, end);
+                                    }
+
+                                    strcat(answer, "\n");
+                                }
+                                else {
+                                    strcat(answer, " NOK\n");
+                                }
+                            }
+                        
+                        } else if (!strcmp(code, "LIN")) {
+                            if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
+                            || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
+                                strcpy(answer, "RLI ERR\n");
+                            }
+                            else {
+                                k = login_user(arg1, arg2);
+                                //printf("k = %d\n", k);
+                                if (k == OK) {
+                                    strcpy(answer, "RLI OK\n");
+                                }
+                                else if (k == REG) {
+                                    strcpy(answer, "RLI REG\n");
+                                }
+                                else {
+                                    strcpy(answer, "RLI NOK\n");
+                                }
+                            }
+                        } else if (!strcmp(code, "LOU")) {
+                            if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
+                            || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
+                                strcpy(answer, "RLO ERR\n");
+                            }
+                            else {
+                                k = logout(arg1, arg2);
+                                //printf("k = %d\n", k);
+                                if (k == OK) {
+                                    strcpy(answer, "RLO OK\n");
+                                }
+                                else if (k == UNR) {
+                                    strcpy(answer, "RLO UNR\n");
+                                }
+                                else {
+                                    strcpy(answer, "RLO NOK\n");
+                                }
+                            }
+                        } else if (!strcmp(code, "UNR")) {
+                            if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
+                            || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
+                                strcpy(answer, "RUR ERR\n");
+                            }
+                            else {
+                                k = unregister(arg1, arg2);
+                                //printf("k = %d\n", k);
+                                if (k == OK) {
+                                    strcpy(answer, "RUR OK\n");
+                                }
+                                else if (k == UNR) {
+                                    strcpy(answer, "RUR UNR\n");
+                                }
+                                else {
+                                    strcpy(answer, "RUR NOK\n");
+                                }
+                            }
+                        } else {
+                            strcpy(answer, "ERR\n");
                         }
 
                         printf("sending : %s\n", answer);

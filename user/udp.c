@@ -373,7 +373,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
 
 
                     printf("-------------------------- Auction nº %s --------------------------\n", AID);
-                    printf("UID: %s \nAuction name: %s \nAsset name: %s \nStart value: %s \nStart date: %s-%s \nTime active: %s\n",
+                    printf("UID: %s \nAuction name: %s \nAsset name: %s \nStart value: %s \nStart date: %s %s \nTime active: %ss\n",
                     host_UID, auction_name, asset_name, start_value, start_date, start_time, duration);
 
                     char letter[2], bidder_UID[20], bid_value[20], bid_date[20], bid_time[20], time_until_bid[20], end_date[20], end_time[20], time_first_bid[20];

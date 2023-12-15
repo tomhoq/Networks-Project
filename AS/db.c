@@ -465,11 +465,10 @@ int login_user(char username[10], char pass[10]) {
     if (file_exists(pass_file)) {    // there is an account
         printf("File  already exists: %s\n", pass_file);
 
-        if (is_password_correct(pass_file, pass)) {
-            exists = 1;
-        } else {
+        if (!is_password_correct(pass_file, pass)) {
             return NOK;
         }
+        exists = 1;
     }
     else{ //registering user
         if (create_file(pass_file, pass) == -1) {
@@ -484,13 +483,15 @@ int login_user(char username[10], char pass[10]) {
         printf("User already logged in.\n");
         return NOK;
     }
-    printf("%s\n", login_file);
+    //printf("%s\n", login_file);
     
     if (create_file(login_file, username) == -1) {  
         return NOK;
     }
-
-    return 0;
+    //printf("adaw\n");
+    if (!exists)
+        return REG;
+    return OK;
 }
 
 int logout(char username[10], char password[10]){
