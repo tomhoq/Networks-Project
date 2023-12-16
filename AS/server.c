@@ -205,16 +205,11 @@ int main (int argc, char* argv[]) {
                         perror("TCP socket accept error.\n");
                     
                     } else {
-
+                        memset(prt_str, '\0', sizeof(prt_str));
                         addrlen = sizeof(tcp_useraddr);
                         ret = read(sock, prt_str, 127);
                         
                         if (ret>=0) {
-
-                            if(strlen(prt_str)>0){
-                                prt_str[ret-1]='\0';
-                            }
-
                             printf("---TCP socket: %s\n",prt_str); //debug
 
                             errcode=getnameinfo( (struct sockaddr *) &tcp_useraddr,
@@ -233,12 +228,18 @@ int main (int argc, char* argv[]) {
                             memset(arg7, '\0', sizeof(arg7));
                             memset(arg8, '\0', sizeof(arg8));
 
-                            n = sscanf(prt_str, "%s %s %s %s %s %s %s %s %s", code, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+                            n = sscanf(prt_str, "%s %s %s %s %s %s %s %s %[^\n]", code, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
                             int k, i = 0;
+                            int bytes_to_read = atoi(arg7);
+                            printf("bytes to read: %d\n", bytes_to_read);
 
                             if (!strcmp(code, "OPA")) {
                                 k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
                                 strcpy(answer, "ROA");
+
+                                //VERIFICAR ARGS!!!
+
+
                                 if (k == OK) {    
                                     strcat(answer, " OK");
                                     char open_aid[5];
@@ -260,13 +261,27 @@ int main (int argc, char* argv[]) {
                                     }
                                     else {
                                         fwrite(arg8, 1, strlen(arg8), fp);
-                                        while ((ret=read(sock, prt_str, 127)) > 0) {
-                                        printf("%s\n", prt_str);
-                                        printf("%d\n", ret);
-                                        if(strlen(prt_str)>0){
-                                            prt_str[ret-1]='\0';
-                                        }
-                                        fwrite(prt_str, 1, strlen(prt_str), fp);
+                                        printf("%s\n", arg8);
+                                        if ( strlen(prt_str)  == 127) {
+                                            memset(prt_str, '\0', sizeof(prt_str));
+                                            
+                                            while (1) {
+                                                ret = read(sock, prt_str, 127);
+                                                if (ret <= 0) {
+                                                    // Handle error or connection closure
+                                                    break;
+                                                }
+                                                printf("%s\n", prt_str);
+                                                // Write the received data to the file
+                                                fwrite(prt_str, 1, ret, fp);
+                                                fflush(fp);  // Flush the file stream to ensure data is written immediately
+
+                                                memset(prt_str, '\0', sizeof(prt_str));
+                                                bytes_to_read -= ret;
+                                                if (bytes_to_read <= 0) {
+                                                    break;
+                                                }
+                                            }
                                         }
 
                                         if (fclose(fp) != 0) {
@@ -287,6 +302,46 @@ int main (int argc, char* argv[]) {
                                 }
                                 else {
                                     strcat(answer, " ERR\n");
+                                }
+
+                            } else if (!strcmp(code, "CLS")) {
+                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
+                                    strcpy(answer, "RCL ERR\n");
+                                }
+                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                    strcpy(answer, "RCL ERR\n");
+                                }
+                                else if (!only_numbers(arg3) && strlen(arg3) != 3) {
+                                    strcpy(answer, "RCL ERR\n");
+                                }
+                                else if (n != 4 || prt_str[strlen(prt_str)-1] != '\n') {
+                                    strcpy(answer, "RCL ERR\n");
+                                }
+                                else {
+                                    k = close_auction(arg1, arg2, arg3);
+                                    strcpy(answer, "RCL");
+                                    if (k == OK) {
+                                        strcat(answer, " OK\n");
+                                    }
+                                    else if (k == NLG) {
+                                        strcat(answer, " NLG\n");
+                                    }
+                                    else if (k == EAU) {
+                                        strcat(answer, " EAU\n");
+                                    }
+                                    else if (k == NOK) {
+                                        strcat(answer, " NOK\n");
+                                    }
+                                    else if (k == EOW) {
+                                        strcat(answer, " EOW\n");
+                                    }
+                                    else if (k == END) {
+                                        strcat(answer, " END\n");
+                                    }
+                                    else {
+                                        strcat(answer, " ERR\n");
+                                    }
+                                
                                 }
 
                             }
@@ -563,7 +618,7 @@ int main (int argc, char* argv[]) {
                             printf("Destination: (%s, %d)\n", host, port);
                         }
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
-                        if (ret < strlen(buffer))
+                        if (ret < strlen(answer))
                             printf("Did not send all\n");
                         
                         printf("-------------------------------------------------------\n");               
