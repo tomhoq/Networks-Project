@@ -239,7 +239,7 @@ int main (int argc, char* argv[]) {
                             if (!strcmp(code, "OPA")) {
                                 k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
                                 strcpy(answer, "ROA");
-                                if (k == OK) {
+                                if (k == OK) {    
                                     strcat(answer, " OK");
                                     char open_aid[5];
                                     if (get_most_recent_aid(open_aid) == -1){
@@ -248,11 +248,12 @@ int main (int argc, char* argv[]) {
                                     }
                                     sprintf(answer, "%s %s\n", answer, open_aid);
                                     printf("%s\n", answer);
-                                    char *path = get_auction_path(open_aid);
-                                    printf("path: %s\n", path);
-                                    printf("Debug stage 1\n");
 
-                                    FILE *fp = fopen(path, "wb");
+                                    char *path = get_auction_path(open_aid);
+                                    strcat(path, arg6);
+                                    printf("path: %s\n", path);
+
+                                    FILE *fp = fopen(path, "w+");
                                     if (fp == NULL) {
                                         printf("Error opening file.\n");
                                         strcpy(answer, "ROA ERR\n");
@@ -289,6 +290,29 @@ int main (int argc, char* argv[]) {
                                 }
 
                             }
+
+                            /*
+                            if (verbose_mode) {
+                            memset(code, '\0', sizeof(code));
+                            memset(arg1, '\0', sizeof(arg1));
+                            memset(arg2, '\0', sizeof(arg2));
+                            int j;
+                            j = sscanf(answer, "%s %s %30[^\n]", code, arg1, arg2);
+                            if (arg2[strlen(arg2)-1] == '\n')
+                                arg2[strlen(arg2)-1] = '\0';
+                            printf("Sending: %s\nStatus: %s\n", code, arg1);
+                            if (j == 3)
+                                printf("Data (first 30 bytes): %s\n", arg2);
+                            int port = ntohs(udp_useraddr.sin_port);
+                            printf("Destination: (%s, %d)\n", host, port);
+                            }
+                            */
+
+                            ret = write(sock, answer, strlen(answer)+1);
+                            if (ret < strlen(answer))
+                                printf("Did not send all.\n");
+                            
+                            printf("-------------------------------------------------------\n"); 
 
                         }          
                         }

@@ -222,7 +222,7 @@ int get_most_recent_aid(char buffer[5]) {
 char* get_auction_path(char aid[5]) {
     char *path = malloc(50 * sizeof(char));
     memset(path, '\0', 50);
-    sprintf(path, "./AUCTIONS/%s/", aid);
+    sprintf(path, "./AUCTIONS/%s/ASSET/", aid);
     return path;
 }
 
