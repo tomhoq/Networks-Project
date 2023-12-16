@@ -832,15 +832,20 @@ int get_record(char aid[5], auction *a){
         }
 
         int number_bids = scandir(bids_dir, &filelist, 0, alphasort);
+        int surplus = 0;
 
         if (number_bids <= 0)
             return NOK;
         
+        if (number_bids > 52) {
+            surplus = number_bids - 50;
+        }
+
         int j = 0, i = 0;
         char bid_name[15];
         while (j<number_bids){
             len = strlen(filelist[j]->d_name);
-            if (len == 10) {
+            if (len == 10 && j >= surplus) {
                 memset(buffer, '\0', sizeof(buffer));
                 memset(b_dir, '\0', sizeof(b_dir));
                 memset(bid_name, '\0', sizeof(bid_name));
@@ -865,6 +870,8 @@ int get_record(char aid[5], auction *a){
             }
             free(filelist[j]);
             j++;
+            printf("j: %d x i: %d\n", j,i);
+
         }
         free(filelist);
         //printf("bid to be last: %d\n", i);

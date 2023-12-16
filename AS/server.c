@@ -464,17 +464,19 @@ int main (int argc, char* argv[]) {
                                 printf("Origin: (%s, %s)\n", host, PORT);
                             }  
                             strcpy(answer, "ERR\n");
-                        }
-
-                        memset(code, '\0', sizeof(code));
-                        memset(arg1, '\0', sizeof(arg1));
-                        memset(arg2, '\0', sizeof(arg2));
-                        int j;
-                        j = sscanf(answer, "%s %s %29[^n]", code, arg1, arg2);
+                        }                        
+                        
                         if (verbose_mode) {
-                            printf("Sending: %s\n, Status: %s\n", code, arg1);
+                            memset(code, '\0', sizeof(code));
+                            memset(arg1, '\0', sizeof(arg1));
+                            memset(arg2, '\0', sizeof(arg2));
+                            int j;
+                            j = sscanf(answer, "%s %s %30[^\n]", code, arg1, arg2);
+                            if (arg2[strlen(arg2)-1] == '\n')
+                                arg2[strlen(arg2)-1] = '\0';
+                            printf("Sending: %s\nStatus: %s\n", code, arg1);
                             if (j == 3)
-                                printf("Data: %s\n", arg2);
+                                printf("Data (first 30 bytes): %s\n", arg2);
                             printf("Destination: (%s, %s)\n", host, PORT);
                         }
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
