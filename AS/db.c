@@ -264,7 +264,7 @@ int check_validity(char *auction_id){
 
                 sprintf(buffer, "%s %d", time_str, (start_fulltime_int + time_active_int));
 
-                printf("buffer: %s\n", buffer);
+                //printf("buffer: %s\n", buffer);
 
                 if (create_file(end_file, buffer) == -1) {
                     printf("Error creating end file");
@@ -870,8 +870,6 @@ int get_record(char aid[5], auction *a){
             }
             free(filelist[j]);
             j++;
-            printf("j: %d x i: %d\n", j,i);
-
         }
         free(filelist);
         //printf("bid to be last: %d\n", i);

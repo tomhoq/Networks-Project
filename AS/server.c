@@ -191,7 +191,7 @@ int main (int argc, char* argv[]) {
         // testfds is now '1' at the positions that were activated
         // printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
         memset(prt_str, '\0', sizeof(prt_str));
-        printf("%d\n",out_fds);
+        //Sprintf("%d\n",out_fds);
 
         switch(out_fds)
         {
@@ -477,7 +477,8 @@ int main (int argc, char* argv[]) {
                             printf("Sending: %s\nStatus: %s\n", code, arg1);
                             if (j == 3)
                                 printf("Data (first 30 bytes): %s\n", arg2);
-                            printf("Destination: (%s, %s)\n", host, PORT);
+                            int port = ntohs(udp_useraddr.sin_port);
+                            printf("Destination: (%s, %d)\n", host, port);
                         }
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
                         if (ret < strlen(buffer))
