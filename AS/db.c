@@ -157,7 +157,6 @@ int delete_file(const char *file_path) {
     }
 }
 
-
 int create_directory(const char *dir_path) {
     int status = mkdir(dir_path, S_IRWXU | S_IRWXG);
     if (status == -1) {
@@ -196,6 +195,51 @@ int is_password_correct(const char * file_path, char *password){
         free(p);
         return 0;
     }
+}
+
+char* get_most_recent_aid() {
+    char auctions_dir[30];
+    struct dirent **filelist;
+    strcpy(auctions_dir, "./AUCTIONS/");
+
+    if (!directory_exists(auctions_dir)) {
+        printf("ERROR WITH DB.\n");
+        return NULL;
+    }
+    int number_auctions = scandir(auctions_dir, &filelist, 0, alphasort);
+    if (number_auctions <= 0)
+        return NULL;
+
+    int j = 0;
+    char* id = (char*)malloc(4 * sizeof(char));
+    while(j<number_auctions){
+        memset(id, 0, 4 * sizeof(char));
+        int len = strlen(filelist[j]->d_name);
+        if (len == 3) {
+            const char *lastDot = strrchr(filelist[j]->d_name, '.');
+
+            if (lastDot != NULL) {
+                // Found a dot, extract basename and extension
+                strncpy(id, filelist[j]->d_name, lastDot - filelist[j]->d_name);
+                //printf("%s\n", id);
+                free(filelist[j]);
+                free(filelist);
+                return id;
+            }
+        }
+        free(filelist[j]);
+        j++;
+    }
+    free(id);
+    free(filelist);
+    return NULL;
+}
+
+char* get_auction_path(char aid[5]) {
+    char *path = malloc(50 * sizeof(char));
+    memset(path, '\0', 50);
+    sprintf(path, "./AUCTIONS/%s/", aid);
+    return path;
 }
 
 //devolve 1 se tiver ativo e 0 senao
