@@ -241,16 +241,15 @@ int main (int argc, char* argv[]) {
                                 strcpy(answer, "ROA");
                                 if (k == OK) {
                                     strcat(answer, " OK");
-                                    char *open_aid = malloc(5*sizeof(char));
-                                    memset(open_aid, '\0', sizeof(open_aid));
-                                    sprintf(open_aid, " %s", get_most_recent_aid());
-
-                                    strcat(answer, open_aid);
-                                    strcat(answer, "\n");
-                                    free(open_aid);
-                                    
-                                    char *path = get_auction_path(get_most_recent_aid());
-
+                                    char open_aid[5];
+                                    if (get_most_recent_aid(open_aid) == -1){
+                                        printf("Error getting most recent aid.\n");
+                                        //do something
+                                    }
+                                    sprintf(answer, "%s %s\n", answer, open_aid);
+                                    printf("%s\n", answer);
+                                    char *path = get_auction_path(open_aid);
+                                    printf("path: %s\n", path);
                                     printf("Debug stage 1\n");
 
                                     FILE *fp = fopen(path, "wb");

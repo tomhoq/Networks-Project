@@ -13,10 +13,10 @@ int main(){
     //create_auction("123123", "12312312", "other_name", "10", "1300", "diamond.txt");
 
     //int n= create_bid("234234", "23423423", "001", "15");
-    create_bid("345345", "34534534", "002", "20");
+    //create_bid("345345", "34534534", "001", "20");
     for (int i = 1; i < 100; i++) {
         sprintf(str, "%d", i+ 10);
-        create_bid("234234", "23423423", "003", str);
+        create_bid("234234", "23423423", "002", str);
     }
 
 
