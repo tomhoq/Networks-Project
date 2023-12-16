@@ -149,7 +149,7 @@ int delete_file(const char *file_path) {
     }
 
     if (remove(file_path) == 0) {
-        printf("File deleted successfully: %s\n", file_path);
+        //printf("File deleted successfully: %s\n", file_path);
         return 1;  // File deleted successfully
     } else {
         printf("Error deleting file\n");
@@ -188,7 +188,7 @@ int is_password_correct(const char * file_path, char *password){
     //printf("%s vs %s\n", p, password);
 
     if (strcmp(p, password) == 0) {
-        printf("Password is correct.\n");
+        //printf("Password is correct.\n");
         free(p);
         return 1;
     } else {
@@ -303,7 +303,7 @@ int is_auction_active(char *auction_id) {
         //verificar se tempo ja passou
         int n;
         if ((n = check_validity(auction_id)) == 1) {
-            printf("Auction is active.\n");
+            //printf("Auction is active.\n");
             return 1;
         } else if (n == 0)  {
             printf("Auction is not active.\n");
@@ -378,7 +378,7 @@ int is_bid_greater(char aid[5], char bid_value[10]){
         strncpy(current_bid, filelist[number_files-1]->d_name, 6);
         
     }
-    printf("current_bid: %s\n", current_bid);
+    //printf("current_bid: %s\n", current_bid);
 
     if (atoi(bid_value) > atoi(current_bid)) {
             for (int i = 0; i < number_files; ++i) {
@@ -442,7 +442,7 @@ int login_user(char username[10], char pass[10]) {
             return -1;
         }
     } else {
-        printf("Directory already exists.\n"); //user is going to reset password
+        //printf("Directory already exists.\n"); //user is going to reset password
 
         //temporario
         sprintf(hosted_dir, "%sHOSTED/", user_directory);
@@ -465,7 +465,7 @@ int login_user(char username[10], char pass[10]) {
     sprintf(pass_file, "%s%s_pass.txt", user_directory, username);  
 
     if (file_exists(pass_file)) {    // there is an account
-        printf("File  already exists: %s\n", pass_file);
+        //printf("File already exists: %s\n", pass_file);
 
         if (!is_password_correct(pass_file, pass)) {
             return NOK;

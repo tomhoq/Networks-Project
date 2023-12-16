@@ -118,7 +118,7 @@ int main (int argc, char* argv[]) {
         exit(1);
     }
 
-    printf("%s %d\n", ASport, verbose_mode);
+    //printf("%s %d\n", ASport, verbose_mode);
 
 // UDP SERVER SECTION
     memset(&hints_udp,0,sizeof(hints_udp));
@@ -237,12 +237,10 @@ int main (int argc, char* argv[]) {
                 if(FD_ISSET(ufd,&testfds))
                 {
                     addrlen = sizeof(udp_useraddr);
-                    ret=recvfrom(ufd,prt_str,80,0,(struct sockaddr *)&udp_useraddr,&addrlen);
+                    ret=recvfrom(ufd,prt_str,89,0,(struct sockaddr *)&udp_useraddr,&addrlen);
+                    //printf("%d\n", ret);
                     if(ret>=0)
                     {
-                        if(strlen(prt_str)>0){
-                            prt_str[ret-1]='\0';
-                        }
                         //printf("---UDP socket: %s\n",prt_str);
                         errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,
                                 addrlen,host,sizeof host, service,sizeof service,0);
@@ -483,7 +481,8 @@ int main (int argc, char* argv[]) {
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
                         if (ret < strlen(buffer))
                             printf("Did not send all\n");
-                
+                        
+                        printf("-------------------------------------------------------\n");               
                         
                     }
 
