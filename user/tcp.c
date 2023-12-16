@@ -1,6 +1,6 @@
 #include "tcp.h"
 
-int open_(char username[7], char password[9], char name[20], char file_name[20], char start_value[20], char duration[20], char ASIP[16], char ASport[6]) {
+int open_(char username[7], char password[9], char name[20], char file_name[30], char start_value[20], char duration[20], char ASIP[16], char ASport[6]) {
     
     //printf("%s %s %s %s %s %s\n", name, file_name, start_value, duration, ASIP, ASport);
 
@@ -53,7 +53,10 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
             } 
         }
     
-    FILE *file = fopen(file_name, "rb"); // Open the file in binary mode
+    char path_file[50];
+    memset(path_file, '\0', sizeof(path_file));
+    sprintf(path_file, "./test/%s", file_name);
+    FILE *file = fopen(path_file, "rb"); // Open the file in binary mode
     if (file == NULL) {
         perror("Error opening file");
         return -1;
@@ -62,7 +65,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
     // Get the size of the file
     struct stat st;
     size_t size;
-    if (stat(file_name, &st) != 0) {
+    if (stat(path_file, &st) != 0) {
         printf("Error getting file size.\n");
         fclose(file);
         return -1;
@@ -95,11 +98,12 @@ int open_(char username[7], char password[9], char name[20], char file_name[20],
         return -1;
     }
 
+    fclose(file);
+
     char *message = (char *) malloc((size+100)*sizeof(char));
     if (message == NULL) {
         perror("Error allocating memory.\n");
         free(file_content);
-        fclose(file);
         return -1;
     }
 
@@ -234,7 +238,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             printf("Error reading.\n");
             free(buffer);
             return -1;
-        } else if (n < buffer_size -total_read) { // End of file, no more data to read
+        } else if (n < (ssize_t) (buffer_size -total_read)) { // End of file, no more data to read
             break;
         }
         total_read += n;
@@ -248,11 +252,10 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             }
             buffer = temp_buffer;
         } 
-        printf("test\n");
+        //printf("test\n");
     }
     freeaddrinfo(res);
     close(fd);
-    printf("out of loop\n");
     switch (type)
     {
     case OPEN: {

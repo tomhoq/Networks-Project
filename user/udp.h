@@ -5,6 +5,8 @@
 #define UNREGISTER 2
 #define LIST 3
 #define SHOW_RECORD 4
+#define PORT "58025"
+#define TEJO "tejo.tecnico.ulisboa.pt"
 
 int login(char username[20], char pass[20], char ASIP[16], char ASport[6]);
 int logout(char username[7], char password[9], char ASIP[16], char ASport[6]);

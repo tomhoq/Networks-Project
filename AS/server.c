@@ -117,7 +117,7 @@ int main (int argc, char* argv[]) {
         exit(1);
     }
 
-    printf("%s %d\n", ASport, verbose_mode);
+    //printf("%s %d\n", ASport, verbose_mode);
 
     // SERVER SECTION
     memset(&hints_udp,0,sizeof(hints_udp));
@@ -185,7 +185,7 @@ int main (int argc, char* argv[]) {
         // printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
 
         memset(prt_str, '\0', sizeof(prt_str));
-        printf("%d\n",out_fds);
+        //Sprintf("%d\n",out_fds);
 
         switch(out_fds)
         {
@@ -298,18 +298,16 @@ int main (int argc, char* argv[]) {
                 if(FD_ISSET(ufd,&testfds))
                 {
                     addrlen = sizeof(udp_useraddr);
-                    ret=recvfrom(ufd,prt_str,80,0,(struct sockaddr *)&udp_useraddr,&addrlen);
+                    ret=recvfrom(ufd,prt_str,89,0,(struct sockaddr *)&udp_useraddr,&addrlen);
+                    //printf("%d\n", ret);
                     if(ret>=0)
                     {
-                        if(strlen(prt_str)>0){
-                            prt_str[ret-1]='\0';
-                        }
-                        printf("---UDP socket: %s\n",prt_str);
+                        //printf("---UDP socket: %s\n",prt_str);
                         errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,
                                 addrlen,host,sizeof host, service,sizeof service,0);
-
-                        if(errcode==0)
-                            printf("       Sent by [%s:%s]\n", host, service);
+                        
+                        //if(errcode==0)
+                            //printf("       Sent by [%s:%s]\n", host, service);
                         
                         char code[5], arg1[30], arg2[30], arg3[30], answer[6000], l[30];
                         memset(answer, '\0', sizeof(answer));
@@ -319,10 +317,17 @@ int main (int argc, char* argv[]) {
                         memset(arg3, '\0', sizeof(arg3));
                         memset(l, '\0', sizeof(l));
                         n = sscanf(prt_str, "%s %s %s %s", code, arg1, arg2, arg3);
+
+                        
+
                         int k, i = 0;
                         //print_all_characters(prt_str);
 
                         if (!strcmp(code, "LST")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s)\n", code);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }   
                             auction a[1001];
                             strcpy(answer, "RLS");
                             if(n != 1 || prt_str[strlen(prt_str)-1] != '\n') {
@@ -341,10 +346,14 @@ int main (int argc, char* argv[]) {
                                     strcat(answer, "\n");
                                 }
                                 else {
-                                    strcat(answer, " ERR\n");
+                                    strcat(answer, " NOK\n");
                                 }
                             }
                         } else if (!strcmp(code, "LMB")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s)\n", code, arg1);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }   
                             auction a[1001];
                             strcpy(answer, "RMB");
                             if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 6 || !only_numbers(arg1)) {
@@ -370,6 +379,10 @@ int main (int argc, char* argv[]) {
                                 }
                             }                            
                         } else if (!strcmp(code, "LMA")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s)\n", code, arg1);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             auction a[1001];
                             strcpy(answer, "RMA");
                             if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 6 || !only_numbers(arg1)) {
@@ -395,6 +408,10 @@ int main (int argc, char* argv[]) {
                                 }
                             }
                         } else if (!strcmp(code, "SRC")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s)\n", code, arg1);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             strcpy(answer, "RRC");
 
                             if(n != 2 || prt_str[strlen(prt_str)-1] != '\n' || strlen(arg1) != 3 || !only_numbers(arg1)) {
@@ -435,6 +452,10 @@ int main (int argc, char* argv[]) {
                             }
                         
                         } else if (!strcmp(code, "LIN")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s, %s)\n", code, arg1, arg2);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
                             || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
                                 strcpy(answer, "RLI ERR\n");
@@ -453,6 +474,10 @@ int main (int argc, char* argv[]) {
                                 }
                             }
                         } else if (!strcmp(code, "LOU")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s, %s)\n", code, arg1, arg2);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
                             || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
                                 strcpy(answer, "RLO ERR\n");
@@ -471,6 +496,10 @@ int main (int argc, char* argv[]) {
                                 }
                             }
                         } else if (!strcmp(code, "UNR")) {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s, %s)\n", code, arg1, arg2);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             if (n != 3 || prt_str[strlen(prt_str)-1] != '\n' 
                             || strlen(arg1) != 6 || !only_numbers(arg1) || strlen(arg2) != 8 || !only_alphanumerical(arg2)) {
                                 strcpy(answer, "RUR ERR\n");
@@ -489,14 +518,32 @@ int main (int argc, char* argv[]) {
                                 }
                             }
                         } else {
+                            if (verbose_mode) {
+                                printf("Request: (%s, %s, %s)\n", code, arg1, arg2);
+                                printf("Origin: (%s, %s)\n", host, PORT);
+                            }  
                             strcpy(answer, "ERR\n");
+                        }                        
+                        
+                        if (verbose_mode) {
+                            memset(code, '\0', sizeof(code));
+                            memset(arg1, '\0', sizeof(arg1));
+                            memset(arg2, '\0', sizeof(arg2));
+                            int j;
+                            j = sscanf(answer, "%s %s %30[^\n]", code, arg1, arg2);
+                            if (arg2[strlen(arg2)-1] == '\n')
+                                arg2[strlen(arg2)-1] = '\0';
+                            printf("Sending: %s\nStatus: %s\n", code, arg1);
+                            if (j == 3)
+                                printf("Data (first 30 bytes): %s\n", arg2);
+                            int port = ntohs(udp_useraddr.sin_port);
+                            printf("Destination: (%s, %d)\n", host, port);
                         }
-
-                        printf("sending : %s\n", answer);
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
                         if (ret < strlen(buffer))
-                            printf("Did not send all.\n");
-                
+                            printf("Did not send all\n");
+                        
+                        printf("-------------------------------------------------------\n");               
                         
                     }
 

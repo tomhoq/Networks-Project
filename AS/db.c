@@ -149,7 +149,7 @@ int delete_file(const char *file_path) {
     }
 
     if (remove(file_path) == 0) {
-        printf("File deleted successfully: %s\n", file_path);
+        //printf("File deleted successfully: %s\n", file_path);
         return 1;  // File deleted successfully
     } else {
         printf("Error deleting file\n");
@@ -187,7 +187,7 @@ int is_password_correct(const char * file_path, char *password){
     //printf("%s vs %s\n", p, password);
 
     if (strcmp(p, password) == 0) {
-        printf("Password is correct.\n");
+        //printf("Password is correct.\n");
         free(p);
         return 1;
     } else {
@@ -292,7 +292,7 @@ int check_validity(char *auction_id){
         //printf("old?: %d\n", current_time_int - (start_fulltime_int + time_active_int));
 
         if (current_time_int > (start_fulltime_int + time_active_int)) {
-            printf("Auction is not active.\n");
+            //printf("Auction is not active.\n");
             sprintf(end_file, "%sEND_%s.txt", auction_directory, auction_id);
             memset(buffer, '\0', sizeof(buffer));
             
@@ -308,7 +308,7 @@ int check_validity(char *auction_id){
 
                 sprintf(buffer, "%s %d", time_str, (start_fulltime_int + time_active_int));
 
-                printf("buffer: %s\n", buffer);
+                //printf("buffer: %s\n", buffer);
 
                 if (create_file(end_file, buffer) == -1) {
                     printf("Error creating end file");
@@ -321,7 +321,7 @@ int check_validity(char *auction_id){
 
             return 0;
         } else {
-            printf("Auction is active.\n");
+            //printf("Auction is active.\n");
             return 1;
         }
 
@@ -347,7 +347,7 @@ int is_auction_active(char *auction_id) {
         //verificar se tempo ja passou
         int n;
         if ((n = check_validity(auction_id)) == 1) {
-            printf("Auction is active.\n");
+            //printf("Auction is active.\n");
             return 1;
         } else if (n == 0)  {
             printf("Auction is not active.\n");
@@ -422,7 +422,7 @@ int is_bid_greater(char aid[5], char bid_value[10]){
         strncpy(current_bid, filelist[number_files-1]->d_name, 6);
         
     }
-    printf("current_bid: %s\n", current_bid);
+    //printf("current_bid: %s\n", current_bid);
 
     if (atoi(bid_value) > atoi(current_bid)) {
             for (int i = 0; i < number_files; ++i) {
@@ -430,13 +430,15 @@ int is_bid_greater(char aid[5], char bid_value[10]){
             }
             free(filelist);
             return 1;
-        } else {
-            for (int i = 0; i < number_files; ++i) {
-                free(filelist[i]);
-            }
-            free(filelist);
-            return 0;
+    } 
+    else {
+        printf("Bid is not greater than current bid.\n");
+        for (int i = 0; i < number_files; ++i) {
+            free(filelist[i]);
         }
+        free(filelist);
+        return 0;
+    }
 }
 
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
@@ -484,7 +486,7 @@ int login_user(char username[10], char pass[10]) {
             return -1;
         }
     } else {
-        printf("Directory already exists.\n"); //user is going to reset password
+        //printf("Directory already exists.\n"); //user is going to reset password
 
         //temporario
         sprintf(hosted_dir, "%sHOSTED/", user_directory);
@@ -507,7 +509,7 @@ int login_user(char username[10], char pass[10]) {
     sprintf(pass_file, "%s%s_pass.txt", user_directory, username);  
 
     if (file_exists(pass_file)) {    // there is an account
-        printf("File  already exists: %s\n", pass_file);
+        //printf("File already exists: %s\n", pass_file);
 
         if (!is_password_correct(pass_file, pass)) {
             return NOK;
@@ -874,15 +876,20 @@ int get_record(char aid[5], auction *a){
         }
 
         int number_bids = scandir(bids_dir, &filelist, 0, alphasort);
+        int surplus = 0;
 
         if (number_bids <= 0)
             return NOK;
         
+        if (number_bids > 52) {
+            surplus = number_bids - 50;
+        }
+
         int j = 0, i = 0;
         char bid_name[15];
         while (j<number_bids){
             len = strlen(filelist[j]->d_name);
-            if (len == 10) {
+            if (len == 10 && j >= surplus) {
                 memset(buffer, '\0', sizeof(buffer));
                 memset(b_dir, '\0', sizeof(b_dir));
                 memset(bid_name, '\0', sizeof(bid_name));

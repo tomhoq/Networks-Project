@@ -1,5 +1,16 @@
 #include "udp.h"
 
+// --- DEBUG ---
+
+void print_all_characters(const char *input_string) {
+    int i= 1;
+    while (*input_string != '\0') {
+        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
+        input_string++;
+        i++;
+    }
+}
+
 int login(char username[20], char password[20], char ASIP[16], char ASport[6]) {
         if (strlen(username) != 6) {
             printf("Username must have 6 characters.\n");
@@ -192,7 +203,9 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
         return -1;
     }
 
-    n = sendto(fd, message, strlen(message)+1, 0, res->ai_addr, res->ai_addrlen);
+    //printf("%d\n", strlen(message));
+    //print_all_characters(message);
+    n = sendto(fd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
     if(n == -1) {
         printf("Error sending to socket\n");
         return -1;
@@ -400,7 +413,7 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
                         }
                         //printf("letter: %s\n", letter);
                         if (letter[0] == 'E') {
-                            printf("        ------------------------------------------------\nAuction finished at: %s-%s\nTime until first bid: %s\n",
+                            printf("        ------------------------------------------------\nAuction finished at: %s %s\nTime until first bid: %s\n",
                             bidder_UID, bid_value, bid_date);     //THESE VARIABLES ARE RIGHT EVEN IF IT DOENS'T LOOK LIKE IT   
                         }
                     }
@@ -445,13 +458,3 @@ int communicate_udp(int type, char message[25], char ASIP[16], char ASport[6]) {
     return 1;
 }
 
-// --- DEBUG ---
-
-void print_all_characters(const char *input_string) {
-    int i= 1;
-    while (*input_string != '\0') {
-        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
-        input_string++;
-        i++;
-    }
-}
