@@ -248,7 +248,7 @@ int check_validity(char *auction_id){
         //printf("old?: %d\n", current_time_int - (start_fulltime_int + time_active_int));
 
         if (current_time_int > (start_fulltime_int + time_active_int)) {
-            printf("Auction is not active.\n");
+            //printf("Auction is not active.\n");
             sprintf(end_file, "%sEND_%s.txt", auction_directory, auction_id);
             memset(buffer, '\0', sizeof(buffer));
             
@@ -277,7 +277,7 @@ int check_validity(char *auction_id){
 
             return 0;
         } else {
-            printf("Auction is active.\n");
+            //printf("Auction is active.\n");
             return 1;
         }
 
@@ -386,13 +386,15 @@ int is_bid_greater(char aid[5], char bid_value[10]){
             }
             free(filelist);
             return 1;
-        } else {
-            for (int i = 0; i < number_files; ++i) {
-                free(filelist[i]);
-            }
-            free(filelist);
-            return 0;
+    } 
+    else {
+        printf("Bid is not greater than current bid.\n");
+        for (int i = 0; i < number_files; ++i) {
+            free(filelist[i]);
         }
+        free(filelist);
+        return 0;
+    }
 }
 
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
