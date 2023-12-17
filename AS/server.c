@@ -46,6 +46,16 @@ int only_alphanumerical(char *str) {
     return 1;
 }
 
+int only_alphanumerical_and_extensions(char *str) {
+    int i = 0;
+    while (str[i] != '\0') {
+        if ((str[i] < '0' || str[i] > '9') && (str[i] < 'A' || str[i] > 'Z') && (str[i] < 'a' || str[i] > 'z') && str[i] != '.' && str[i] != '-' && str[i] != '_')
+            return 0;
+        i++;
+    }
+    return 1;
+}
+
 int main (int argc, char* argv[]) {
 
     // socket variables
@@ -235,142 +245,106 @@ int main (int argc, char* argv[]) {
                             printf("bytes to read: %d\n", bytes_to_read);
 
                             if (!strcmp(code, "OPA")) {
-                                k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
-                                strcpy(answer, "ROA");
-                                if (strlen(arg3) > 10) {
-                                    printf("Auction name must have no more than 10 characters.\n");
-                                    k = ARG_ERR;
-                                }
-                                else {
-                                    for (int i = 0; i < (int)strlen(arg3); i++) {
-                                        if (!isalnum(arg3[i])) {
-                                            printf("Invalid auction name. Must contain only alphanumeric characters.\n");
-                                            k = ARG_ERR;
-                                        }
-                                    } 
-                                }
-                                if (strlen(arg4) > 6) {
-                                    printf("Start value must have no more than 6 digits.\n");
-                                    k = ARG_ERR;
-                                }
-                                else {
-                                        for (int i = 0; i < (int)strlen(arg4); i++) {
-                                            if (!isdigit(arg4[i])) {
-                                                printf("Invalid start time. Must contain only digits.\n");
-                                                k = ARG_ERR;
-                                            }
-                                        } 
-                                }
-                                if (strlen(arg5) > 5) {
-                                    printf("Auction duration must have no more than 5 digits.\n");
-                                    k = ARG_ERR;
-                                }
-                                else {
-                                    for (int i = 0; i < (int)strlen(arg5); i++) {
-                                        if (!isdigit(arg5[i])) {
-                                            printf("Invalid auction duration. Must contain only digits.\n");
-                                            k = ARG_ERR;
-                                        }
-                                    } 
-                                }
-                                if (strlen(arg6) > 24) {
-                                    printf("File name must have no more than 24 characters.\n");
-                                    k = ARG_ERR;
-                                }
-                                else {
-                                    for (int i = 0; i < (int)strlen(arg6); i++) {
-                                        if (!isalnum(arg6[i]) && arg6[i] != '-' && arg6[i] != '_' && arg6[i] != '.') {
-                                            printf("Invalid file name.\n");
-                                            k = ARG_ERR;
-                                        }
-                                    } 
-                                }
-                                if (strlen(arg7) > 8) {
-                                    printf("File size must have no more than 8 digits.\n");
-                                    k = ARG_ERR;
-                                }
-                                else {
-                                        for (int i = 0; i < (int)strlen(arg7); i++) {
-                                            if (!isdigit(arg7[i])) {
-                                                printf("Invalid file size input. Must contain only digits.\n");
-                                                k = ARG_ERR;
-                                            }
-                                        } 
-                                }
-                                if (n != 9 || prt_str[strlen(prt_str)-1] != '\n') {
+                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                if (k == OK) {    
-                                    strcat(answer, " OK");
-                                    char open_aid[5];
-                                    if (get_most_recent_aid(open_aid) == -1){
-                                        printf("Error getting most recent aid.\n");
-                                        //do something
-                                    }
-                                    sprintf(answer, "%s %s\n", answer, open_aid);
-                                    printf("%s\n", answer);
-
-                                    char *path = get_auction_path(open_aid);
-                                    strcat(path, arg6);
-                                    printf("path: %s\n", path);
-
-                                    FILE *fp = fopen(path, "w+");
-                                    if (fp == NULL) {
-                                        printf("Error opening file.\n");
-                                        strcpy(answer, "ROA ERR\n");
-                                    }
-                                    else {
-                                        int bytes_read = 0; // MAX 10 MB
-
-                                        fwrite(arg8, 1, strlen(arg8), fp);
-                                        printf("%s\n", arg8);
-                                        if ( strlen(prt_str)  == 127) {
-                                            memset(prt_str, '\0', sizeof(prt_str));
-                                            
-                                            while (1) {
-                                                ret = read(sock, prt_str, 127);
-                                                if (ret <= 0) {
-                                                    // Handle error or connection closure
-                                                    break;
-                                                }
-                                                printf("%s\n", prt_str);
-                                                // Write the received data to the file
-                                                fwrite(prt_str, 1, ret, fp);
-                                                fflush(fp);  // Flush the file stream to ensure data is written immediately
-
-                                                memset(prt_str, '\0', sizeof(prt_str));
-                                                bytes_to_read -= ret;
-                                                if (bytes_to_read <= 0) {
-                                                    break;
-                                                }
-
-                                                bytes_read += ret;
-                                                if (bytes_read >= pow(10, 7)) {
-                                                    printf("File size cannot exceed 10MB.\n");
-                                                    strcpy(answer, "ROA ERR\n");
-                                                    break;
-                                                }
-                                            }
+                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (!only_alphanumerical(arg3) && strlen(arg3) > 10) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (!only_numbers(arg4) && strlen(arg4) > 6) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (!only_numbers(arg5) && strlen(arg5) > 5) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (!only_alphanumerical_and_extensions(arg6) && strlen(arg6) > 24) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (!only_numbers(arg7) && strlen(arg7) > 8) {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
+                                else if (n != 9 || prt_str[strlen(prt_str)-1] != '\n') {
+                                    strcpy(answer, "ROA ERR\n");
+                                } 
+                                else {
+                                    k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
+                                    strcpy(answer, "ROA");
+                                    if (k == OK) {    
+                                        strcat(answer, " OK");
+                                        char open_aid[5];
+                                        if (get_most_recent_aid(open_aid) == -1){
+                                            printf("Error getting most recent aid.\n");
+                                            //do something
                                         }
-                                        if (fclose(fp) != 0) {
-                                            printf("Error closing file.\n");
+                                        sprintf(answer, "%s %s\n", answer, open_aid);
+                                        printf("%s\n", answer);
+
+                                        char *path = get_auction_path(open_aid);
+                                        strcat(path, arg6);
+                                        printf("path: %s\n", path);
+
+                                        FILE *fp = fopen(path, "w+");
+                                        if (fp == NULL) {
+                                            printf("Error opening file.\n");
                                             strcpy(answer, "ROA ERR\n");
                                         }
-                                        if (verbose_mode) {
-                                            printf("Auction created.\n");
+                                        else {
+                                            int bytes_read = 0; // MAX 10 MB
+
+                                            fwrite(arg8, 1, strlen(arg8), fp);
+                                            printf("%s\n", arg8);
+                                            if ( strlen(prt_str)  == 127) {
+                                                memset(prt_str, '\0', sizeof(prt_str));
+                                                
+                                                while (1) {
+                                                    ret = read(sock, prt_str, 127);
+                                                    if (ret <= 0) {
+                                                        // Handle error or connection closure
+                                                        break;
+                                                    }
+                                                    printf("%s\n", prt_str);
+                                                    // Write the received data to the file
+                                                    fwrite(prt_str, 1, ret, fp);
+                                                    fflush(fp);  // Flush the file stream to ensure data is written immediately
+
+                                                    memset(prt_str, '\0', sizeof(prt_str));
+                                                    bytes_to_read -= ret;
+                                                    if (bytes_to_read <= 0) {
+                                                        break;
+                                                    }
+
+                                                    bytes_read += ret;
+                                                    if (bytes_read >= pow(10, 7)) {
+                                                        printf("File size cannot exceed 10MB.\n");
+                                                        strcpy(answer, "ROA ERR\n");
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            if (fclose(fp) != 0) {
+                                                printf("Error closing file.\n");
+                                                strcpy(answer, "ROA ERR\n");
+                                            }
+                                            if (verbose_mode) {
+                                                printf("Auction created.\n");
+                                            }
                                         }
+                                        free(path);              
                                     }
-                                    free(path);              
+                                    else if (k == NLG) {
+                                        strcat(answer, " NLG\n");
+                                    }
+                                    else if (k == NOK) {
+                                        strcat(answer, " NOK\n");
+                                    }
+                                    else {
+                                        strcat(answer, " ERR\n");
+                                    }
                                 }
-                                else if (k == NLG) {
-                                    strcat(answer, " NLG\n");
-                                }
-                                else if (k == NOK) {
-                                    strcat(answer, " NOK\n");
-                                }
-                                else {
-                                    strcat(answer, " ERR\n");
-                                }
+                                
 
 
                             } else if (!strcmp(code, "CLS")) {
@@ -435,7 +409,7 @@ int main (int argc, char* argv[]) {
                                 else if (!only_numbers(arg3) && strlen(arg3) != 3) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
-                                if (!only_numbers(arg4) && strlen(arg4) > 5) {
+                                if (!only_numbers(arg4) && strlen(arg4) > 6) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
                                 else if (n != 5 || prt_str[strlen(prt_str)-1] != '\n') {

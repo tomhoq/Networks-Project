@@ -24,8 +24,6 @@
 #define REF 19
 #define ACC 20
 
-#define ARG_ERR 999
-
 #define last 666
 #define UNITIALIZED 667
 
