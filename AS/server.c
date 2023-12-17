@@ -238,6 +238,66 @@ int main (int argc, char* argv[]) {
                                 strcpy(answer, "ROA");
 
                                 //VERIFICAR ARGS!!!
+                                if (strlen(arg3) > 10) {
+                                    printf("Auction name must have no more than 10 characters.\n");
+                                    k = ARG_ERR;
+                                }
+                                else {
+                                    for (int i = 0; i < (int)strlen(arg3); i++) {
+                                        if (!isalnum(arg3[i])) {
+                                            printf("Invalid auction name. Must contain only alphanumeric characters.\n");
+                                            k = ARG_ERR;
+                                        }
+                                    } 
+                                }
+                                if (strlen(arg4) > 6) {
+                                    printf("Start value must have no more than 6 digits.\n");
+                                    k = ARG_ERR;
+                                }
+                                else {
+                                        for (int i = 0; i < (int)strlen(arg4); i++) {
+                                            if (!isdigit(arg4[i])) {
+                                                printf("Invalid start time. Must contain only digits.\n");
+                                                k = ARG_ERR;
+                                            }
+                                        } 
+                                }
+                                if (strlen(arg5) > 5) {
+                                    printf("Auction duration must have no more than 5 digits.\n");
+                                    k = ARG_ERR;
+                                }
+                                else {
+                                    for (int i = 0; i < (int)strlen(arg5); i++) {
+                                        if (!isdigit(arg5[i])) {
+                                            printf("Invalid auction duration. Must contain only digits.\n");
+                                            k = ARG_ERR;
+                                        }
+                                    } 
+                                }
+                                if (strlen(arg6) > 24) {
+                                    printf("File name must have no more than 24 characters.\n");
+                                    k = ARG_ERR;
+                                }
+                                else {
+                                    for (int i = 0; i < (int)strlen(arg6); i++) {
+                                        if (!isalnum(arg6[i]) && arg6[i] != '-' && arg6[i] != '_' && arg6[i] != '.') {
+                                            printf("Invalid file name.\n");
+                                            k = ARG_ERR;
+                                        }
+                                    } 
+                                }
+                                if (strlen(arg7) > 8) {
+                                    printf("File size must have no more than 8 digits.\n");
+                                    k = ARG_ERR;
+                                }
+                                else {
+                                        for (int i = 0; i < (int)strlen(arg7); i++) {
+                                            if (!isdigit(arg7[i])) {
+                                                printf("Invalid file size input. Must contain only digits.\n");
+                                                k = ARG_ERR;
+                                            }
+                                        } 
+                                }
 
 
                                 if (k == OK) {    

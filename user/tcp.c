@@ -45,13 +45,13 @@ int open_(char username[7], char password[9], char name[20], char file_name[30],
             return -1;
     }
     else {
-            for (int i = 0; i < (int)strlen(duration); i++) {
-                if (!isdigit(duration[i])) {
-                    printf("Invalid auction duration. Must contain only digits.\n");
-                    return -1;
-                }
-            } 
-        }
+        for (int i = 0; i < (int)strlen(duration); i++) {
+            if (!isdigit(duration[i])) {
+                printf("Invalid auction duration. Must contain only digits.\n");
+                return -1;
+            }
+        } 
+    }
     
     char path_file[50];
     memset(path_file, '\0', sizeof(path_file));
