@@ -425,6 +425,26 @@ int is_bid_greater(char aid[5], char bid_value[10]){
     }
 }
 
+int delete_auction(char aid[5], char uid[10]){
+    char auctions_dir[30];
+    char a_dir[50];
+    char bids_dir[60];
+    char asset_dir[60];
+    char user_directory[30];
+    char auction_file[50];
+    char pass_file[50];
+    char hosted_file[50];
+    int len;
+    struct dirent **filelist;
+
+    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(hosted_file, "%sHOSTED/%s.txt", user_directory, aid);
+
+    sprintf(auction_file, "./AUCTIONS/%s/", aid);
+
+    delete_all(auction_file);
+    delete_file(hosted_file);
+}
 //-Funcoes complexas-----------------------------------------------------------------------------------------------------------------------------------------
 
 int login_user(char username[10], char pass[10]) {
