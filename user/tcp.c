@@ -402,6 +402,12 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             free(Fdata);
             return -1;
         }
+        else if (strcmp(arg1, "RSA") == 0 && strcmp(arg2, "ERR") == 0 && j==4){
+            printf("Auction does not exist.\n");
+            free(buffer);
+            free(Fdata);
+            return -1;
+        }
         else {
             printf("Unexpected protocol message.\n");
             free(buffer);
