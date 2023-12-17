@@ -10,7 +10,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[30],
     }
     else {
         for (int i = 0; i < (int)strlen(name); i++) {
-            if (!isalnum(name[i])) {
+            if (!isalnum(name[i])&& file_name[i] != '-' && file_name[i] != '_' && file_name[i] != '.') {
                 printf("Invalid auction name. Must contain only alphanumeric characters.\n");
                 return -1;
             }
@@ -55,7 +55,7 @@ int open_(char username[7], char password[9], char name[20], char file_name[30],
     
     char path_file[50];
     memset(path_file, '\0', sizeof(path_file));
-    sprintf(path_file, "./test/%s", file_name);
+    sprintf(path_file, "./user/test/%s", file_name);
     FILE *file = fopen(path_file, "rb"); // Open the file in binary mode
     if (file == NULL) {
         perror("Error opening file");
@@ -363,7 +363,7 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             //por freesss
             char path[40];
             memset(path, '\0', sizeof(path));
-            snprintf(path, sizeof(path), "./assets/%s", Fname);
+            snprintf(path, sizeof(path), "./user/assets/%s", Fname);
 
             //printf("path: %s\n", path);
 

@@ -68,7 +68,11 @@ int main (int argc, char* argv[]) {
         exit(1);
     }
 
-    printf("%s %s\n", ASIP, ASport);
+    //printf("%s %s\n", ASIP, ASport);
+    //memset(ASIP, '\0', sizeof(ASIP));
+    //memset(ASport, '\0', sizeof(ASport));
+    //strcpy(ASport, "58011");
+    //strcpy(ASIP, TEJO);
     //user input
     while (1) {
 

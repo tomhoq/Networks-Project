@@ -62,7 +62,7 @@ int main (int argc, char* argv[]) {
     struct addrinfo hints_udp, *res_udp, *res_tcp, hints_tcp;
     struct sockaddr_in udp_useraddr, tcp_useraddr;
     socklen_t addrlen;
-    int i, out_fds, n, errcode, ret, ufd, tcp;
+    int i, out_fds, n, errcode, ret, ufd, tcp, wr;
     
     char buffer[128], username[7],password[9];
     char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
@@ -129,6 +129,7 @@ int main (int argc, char* argv[]) {
     }
 
     //printf("%s %d\n", ASport, verbose_mode);
+    //strcpy(ASport, "58011");
 
     // SERVER SECTION
     memset(&hints_udp,0,sizeof(hints_udp));
@@ -201,7 +202,7 @@ int main (int argc, char* argv[]) {
         switch(out_fds)
         {
             case 0:
-                printf("\n ---------------Timeout event-----------------\n");
+                //printf("\n ---------------Timeout event-----------------\n");
                 break;
             case -1:
                 perror("select");
@@ -219,6 +220,7 @@ int main (int argc, char* argv[]) {
                         memset(prt_str, '\0', sizeof(prt_str));
                         addrlen = sizeof(tcp_useraddr);
                         ret = read(sock, prt_str, 127);
+                        printf("ret = %d\n", ret);
                         
                         if (ret>=0) {
                             printf("---TCP socket: %s\n",prt_str); //debug
@@ -240,9 +242,9 @@ int main (int argc, char* argv[]) {
                             memset(arg8, '\0', sizeof(arg8));
 
                             n = sscanf(prt_str, "%s %s %s %s %s %s %s %s %[^\n]", code, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+                            int size_arg8 = 127 -(strlen(code) + strlen(arg1) + strlen(arg2) + strlen(arg3) + strlen(arg4) + strlen(arg5) + strlen(arg6) + strlen(arg7) + 8);
+                            //printf("size_arg8 = %d\n", size_arg8);
                             int k, i = 0;
-                            int bytes_to_read = atoi(arg7);
-                            printf("bytes to read: %d\n", bytes_to_read);
 
                             if (!strcmp(code, "OPA")) {
                                 if (!only_numbers(arg1) && strlen(arg1) != 6) {
@@ -266,73 +268,111 @@ int main (int argc, char* argv[]) {
                                 else if (!only_numbers(arg7) && strlen(arg7) > 8) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (n != 9 || prt_str[strlen(prt_str)-1] != '\n') {
+                                else if (n != 9 || (ret < 127 && prt_str[strlen(prt_str)-1] != '\n')) {
                                     strcpy(answer, "ROA ERR\n");
                                 } 
                                 else {
                                     k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
+                                    //printf("k = %d\n", k);
                                     strcpy(answer, "ROA");
                                     if (k == OK) {    
-                                        strcat(answer, " OK");
                                         char open_aid[5];
                                         if (get_most_recent_aid(open_aid) == -1){
                                             printf("Error getting most recent aid.\n");
-                                            //do something
+                                            delete_auction(open_aid, arg1);
+                                            strcat(answer, " NOK");
+
                                         }
                                         sprintf(answer, "%s %s\n", answer, open_aid);
                                         printf("%s\n", answer);
 
-                                        char *path = get_asset_path(open_aid);
+                                        char *path = get_auction_path(open_aid);
                                         strcat(path, arg6);
                                         printf("path: %s\n", path);
 
-                                        FILE *fp = fopen(path, "w+");
-                                        if (fp == NULL) {
-                                            printf("Error opening file.\n");
-                                            strcpy(answer, "ROA ERR\n");
-                                        }
-                                        else {
-                                            int bytes_read = 0; // MAX 10 MB
-
-                                            fwrite(arg8, 1, strlen(arg8), fp);
-                                            printf("%s\n", arg8);
-                                            if ( strlen(prt_str)  == 127) {
-                                                memset(prt_str, '\0', sizeof(prt_str));
-                                                
-                                                while (1) {
-                                                    ret = read(sock, prt_str, 127);
-                                                    if (ret <= 0) {
-                                                        // Handle error or connection closure
-                                                        break;
-                                                    }
-                                                    printf("%s\n", prt_str);
-                                                    // Write the received data to the file
-                                                    fwrite(prt_str, 1, ret, fp);
-                                                    fflush(fp);  // Flush the file stream to ensure data is written immediately
-
-                                                    memset(prt_str, '\0', sizeof(prt_str));
-                                                    bytes_to_read -= ret;
-                                                    if (bytes_to_read <= 0) {
-                                                        break;
-                                                    }
-
-                                                    bytes_read += ret;
-                                                    if (bytes_read >= pow(10, 7)) {
-                                                        printf("File size cannot exceed 10MB.\n");
-                                                        strcpy(answer, "ROA ERR\n");
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            if (fclose(fp) != 0) {
-                                                printf("Error closing file.\n");
+                                            FILE *fp = fopen(path, "w+");
+                                            if (fp == NULL) {
+                                                printf("Error opening file.\n");
                                                 strcpy(answer, "ROA ERR\n");
                                             }
-                                            if (verbose_mode) {
-                                                printf("Auction created.\n");
+                                            else {
+                                                int bytes_to_read = atoi(arg7);
+
+                                                int bytes_read = 0; // MAX 10 MB
+                                                int stop = 0;
+
+                                                wr = fwrite(arg8, 1, size_arg8, fp);
+                                                //printf("wr vs size_arg8: %d vs %d\n", wr, size_arg8);
+                                                bytes_read += wr;
+
+                                                if (bytes_read < bytes_to_read) {
+                                                    memset(prt_str, '\0', sizeof(prt_str));
+                                                    
+                                                    while (1) {
+                                                        ret = read(sock, prt_str, 127);
+                                                        if (ret < 0) {
+                                                            stop = 1;
+                                                            printf("Error reading from socket.\n");
+                                                            break;
+                                                        }
+                                                        //printf("%s\n", prt_str);
+                                                        // Write the received data to the file
+                                                        //printf("%lu %lu\n", strlen(prt_str), ret);
+                                                        wr = fwrite(prt_str, 1, ret, fp);
+
+                                                        if (wr != ret) {
+                                                            printf("Error writing to file.\n");
+                                                            stop = 1;
+                                                            break;
+                                                        }
+                                                        fflush(fp);  // Flush the file stream to ensure data is written immediately
+
+                                                        memset(prt_str, '\0', sizeof(prt_str));
+                                                        bytes_read += ret;
+
+                                                        if (bytes_read == bytes_to_read) {
+                                                            memset(prt_str, '\0', sizeof(prt_str));
+                                                            break;
+                                                        } else if (bytes_read > bytes_to_read) {
+                                                            printf("File size is surpassing the one provided:\n %d > %d\n", bytes_read, bytes_to_read);
+                                                            stop = 1;
+                                                            break;
+                                                        }
+                                                        if (bytes_read >= pow(10, 7)) {
+                                                            printf("File size cannot exceed 10MB.\n");
+                                                            stop = 1;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                else if (bytes_read > bytes_to_read) {
+                                                    printf("File size is surpassing the one provided2:\n %d > %d\n", bytes_read, bytes_to_read);
+                                                    stop = 1;
+                                                }
+                                                if (fclose(fp) != 0) {
+                                                    printf("Error closing file.\n");
+                                                    memset(answer, '\0', sizeof(answer));
+                                                    strcpy(answer, "ROA NOK\n");
+                                                    delete_auction(open_aid, arg1);
+                                                }
+                                                else {
+                                                    if (verbose_mode && !stop) {
+                                                        printf("Auction created.\n");
+                                                    }
+                                                    strcat(answer, " OK");
+
+                                                    sprintf(answer, "%s %s\n", answer, open_aid);
+                                                    //printf("%s\n", answer);
+                                                }
+                                                if (stop == 1) {
+                                                    printf("stopping\n");
+                                                    delete_auction(open_aid, arg1);
+                                                    memset(answer, '\0', sizeof(answer));
+                                                    strcpy(answer, "ROA NOK\n");
+                                                }
                                             }
-                                        }
-                                        free(path);              
+                                            free(path);  
+                                        }            
                                     }
                                     else if (k == NLG) {
                                         strcat(answer, " NLG\n");
@@ -344,6 +384,8 @@ int main (int argc, char* argv[]) {
                                         strcat(answer, " ERR\n");
                                     }
                                 }
+                                
+
 
                             } else if (!strcmp(code, "CLS")) {
                                 if (!only_numbers(arg1) && strlen(arg1) != 6) {
