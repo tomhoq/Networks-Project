@@ -247,28 +247,28 @@ int main (int argc, char* argv[]) {
                             int k, i = 0;
 
                             if (!strcmp(code, "OPA")) {
-                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
+                                if (!only_numbers(arg1) || strlen(arg1) != 6) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                else if (!only_alphanumerical(arg2) || strlen(arg2) != 8) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_alphanumerical(arg3) && strlen(arg3) > 10) {
+                                else if (!only_alphanumerical(arg3) || strlen(arg3) > 10) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_numbers(arg4) && strlen(arg4) > 6) {
+                                else if (!only_numbers(arg4) || strlen(arg4) > 6) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_numbers(arg5) && strlen(arg5) > 5) {
+                                else if (!only_numbers(arg5) || strlen(arg5) > 5) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_alphanumerical_and_extensions(arg6) && strlen(arg6) > 24) {
+                                else if (!only_alphanumerical_and_extensions(arg6) || strlen(arg6) > 24) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (!only_numbers(arg7) && strlen(arg7) > 8) {
+                                else if (!only_numbers(arg7) || strlen(arg7) > 8) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (n != 9 || (ret < 127 && prt_str[strlen(prt_str)-1] != '\n')) {
+                                else if (n != 9 || (ret < 127 || prt_str[strlen(prt_str)-1] != '\n')) {
                                     strcpy(answer, "ROA ERR\n");
                                 } 
                                 else {
@@ -384,13 +384,13 @@ int main (int argc, char* argv[]) {
                                 }
                             } 
                             else if (!strcmp(code, "CLS")) {
-                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
+                                if (!only_numbers(arg1) || strlen(arg1) != 6) {
                                     strcpy(answer, "RCL ERR\n");
                                 }
-                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                else if (!only_alphanumerical(arg2) || strlen(arg2) != 8) {
                                     strcpy(answer, "RCL ERR\n");
                                 }
-                                else if (!only_numbers(arg3) && strlen(arg3) != 3) {
+                                else if (!only_numbers(arg3) || strlen(arg3) != 3) {
                                     strcpy(answer, "RCL ERR\n");
                                 }
                                 else if (n != 4 || prt_str[strlen(prt_str)-1] != '\n') {
@@ -425,7 +425,7 @@ int main (int argc, char* argv[]) {
 
                             }
                             else if (!strcmp(code, "SAS")) {
-                                if (!only_numbers(arg1) && strlen(arg1) != 3) {
+                                if (!only_numbers(arg1) || strlen(arg1) != 3) {
                                     strcpy(answer, "RSA ERR\n");
                                 }
                                 else if (n != 2 || prt_str[strlen(prt_str)-1] != '\n') {
@@ -446,43 +446,53 @@ int main (int argc, char* argv[]) {
                                         //printf("%s\n",asset_path);
 
                                         sprintf(answer, "RSA OK %s %lu", asset_name, asset_size);
-                                        printf("asdsad:  %s\n", answer);
-                                        FILE *fp = fopen(asset_path, "r");
+                                        printf("asdsad:  %s\n", answer); // DEBUG
+                                        write(sock, answer, strlen(answer));
+
+                                        FILE *fp = fopen(asset_path, "r"); 
                                         free(path);
                                         free(asset_name);
                                         if (fp == NULL) {
                                             printf("Error opening file.\n");
                                             memcpy(answer, "\0", sizeof(answer));
                                             strcpy(answer, "RSA ERR\n");
-                                        }
+                                        }   
+                                        else {     
+                                            printf("Sending file...\n");
+                                            while (1) {
+                                                int sock;
 
-                                        write(sock, answer, strlen(answer));
-                                        /*while (1) {
-                                            memset(prt_str, '\0', sizeof(prt_str));
-                                            ret = fread(prt_str, 1, 127, fp);
-                                            if (ret <= 0) {
-                                                // Handle error or connection closure
-                                                break;
-                                            }
-                                            wr = write(sock, prt_str, ret);
-
-                                            if (wr != ret)  
-                                                printf("%d vs %d", wr, ret);
-                                        }     */                   
+                                                memset(prt_str, '\0', sizeof(prt_str));
+                                                ret = fread(prt_str, 1, 127, fp);
+                                                if (ret < 0) {
+                                                    printf("Error reading file.\n");
+                                                    memcpy(answer, "\0", sizeof(answer));
+                                                    strcpy(answer, "RSA ERR\n");
+                                                    break;
+                                                }
+                                                if (ret == 0) {
+                                                    printf("File sent.\n");
+                                                    break;
+                                                }
+                                                wr = write(sock, prt_str, ret);
+                                                if (wr != ret)  
+                                                    printf("%d vs %d", wr, ret);
+                                            } 
+                                        }                   
                                     }
                                 }
                             }
                             else if (!strcmp(code, "BID")) {
-                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
+                                if (!only_numbers(arg1) || strlen(arg1) != 6) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
-                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                else if (!only_alphanumerical(arg2) || strlen(arg2) != 8) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
-                                else if (!only_numbers(arg3) && strlen(arg3) != 3) {
+                                else if (!only_numbers(arg3) || strlen(arg3) != 3) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
-                                if (!only_numbers(arg4) && strlen(arg4) > 6) {
+                                if (!only_numbers(arg4) || strlen(arg4) > 6) {
                                     strcpy(answer, "RBD ERR\n");
                                 }
                                 else if (n != 5 || prt_str[strlen(prt_str)-1] != '\n') {

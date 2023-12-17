@@ -154,7 +154,7 @@ int show_asset(char aid[4], char ASIP[16], char ASport[6]) {
 
     int n = communicate_tcp(SHOW_ASSET, message, message_length, ASIP, ASport);
     if (n == -1) {
-        printf("Error communicating with AS\n");
+        printf("Error communicating with AS.\n");
         return -1;
     }
     
@@ -278,12 +278,12 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         }
         else if (strcmp(buffer, "ROA NOK\n") == 0){
             printf("Error opening auction.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "ROA NLG\n") == 0)
         {
             printf("You are not logged in. Stop.\n");
-            return -1;
+            return 0;
         }
         else {
             printf("Unexpected protocol message.\n");
@@ -303,27 +303,27 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         }
         else if (strcmp(buffer, "RCL NOK\n") == 0){
             printf("Error closing auction.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RCL NLG\n") == 0)
         {
             printf("You are not logged in. Stop.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RCL EAU\n") == 0)
         {
             printf("Auction does not exist.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RCL EOW\n") == 0)
         {
             printf("You are not the owner of this auction. Stop.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RCL END\n") == 0)
         {
             printf("Auction has already finished.\n");
-            return -1;
+            return 0;
         }
         else {
             printf("Unexpected protocol message.\n");
@@ -400,13 +400,13 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
             printf("Error showing asset.\n");
             free(buffer);
             free(Fdata);
-            return -1;
+            return 0;
         }
         else if (strcmp(arg1, "RSA") == 0 && strcmp(arg2, "ERR") == 0 && j==4){
             printf("Auction does not exist.\n");
             free(buffer);
             free(Fdata);
-            return -1;
+            return 0;
         }
         else {
             printf("Unexpected protocol message.\n");
@@ -423,23 +423,23 @@ int communicate_tcp(int type, char *message, size_t message_length, char ASIP[16
         }
         else if (strcmp(buffer, "RBD NOK\n") == 0) {
             printf("Auction not active.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RBD NLG\n") == 0) {
             printf("You are not logged in. Stop.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RBD REF\n") == 0) {
             printf("Your bid must be greater than current bid.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RBD ILG\n") == 0) {
             printf("You can't bid on your own auction. Stop.\n");
-            return -1;
+            return 0;
         }
         else if (strcmp(buffer, "RBD EBD\n") == 0) {
             printf("Bid is lower than the current highest bid.\n");
-            return -1;
+            return 0;
         }
         else {
             printf("Unexpected protocol message.\n");
