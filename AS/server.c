@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <math.h>
 #include "db.c"
 #define PORT "58025"
 #define TEJO "tejo.tecnico.ulisboa.pt"
@@ -236,8 +237,6 @@ int main (int argc, char* argv[]) {
                             if (!strcmp(code, "OPA")) {
                                 k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
                                 strcpy(answer, "ROA");
-
-                                //VERIFICAR ARGS!!!
                                 if (strlen(arg3) > 10) {
                                     printf("Auction name must have no more than 10 characters.\n");
                                     k = ARG_ERR;
@@ -298,8 +297,9 @@ int main (int argc, char* argv[]) {
                                             }
                                         } 
                                 }
-
-
+                                if (n != 9 || prt_str[strlen(prt_str)-1] != '\n') {
+                                    strcpy(answer, "ROA ERR\n");
+                                }
                                 if (k == OK) {    
                                     strcat(answer, " OK");
                                     char open_aid[5];
@@ -320,6 +320,8 @@ int main (int argc, char* argv[]) {
                                         strcpy(answer, "ROA ERR\n");
                                     }
                                     else {
+                                        int bytes_read = 0; // MAX 10 MB
+
                                         fwrite(arg8, 1, strlen(arg8), fp);
                                         printf("%s\n", arg8);
                                         if ( strlen(prt_str)  == 127) {
@@ -341,9 +343,15 @@ int main (int argc, char* argv[]) {
                                                 if (bytes_to_read <= 0) {
                                                     break;
                                                 }
+
+                                                bytes_read += ret;
+                                                if (bytes_read >= pow(10, 7)) {
+                                                    printf("File size cannot exceed 10MB.\n");
+                                                    strcpy(answer, "ROA ERR\n");
+                                                    break;
+                                                }
                                             }
                                         }
-
                                         if (fclose(fp) != 0) {
                                             printf("Error closing file.\n");
                                             strcpy(answer, "ROA ERR\n");
@@ -363,6 +371,7 @@ int main (int argc, char* argv[]) {
                                 else {
                                     strcat(answer, " ERR\n");
                                 }
+
 
                             } else if (!strcmp(code, "CLS")) {
                                 if (!only_numbers(arg1) && strlen(arg1) != 6) {
@@ -404,6 +413,53 @@ int main (int argc, char* argv[]) {
                                 
                                 }
 
+                            }
+                            else if (!strcmp(code, "SAS")) {
+                                if (!only_numbers(arg1) && strlen(arg1) != 3) {
+                                    strcpy(answer, "RSA ERR\n");
+                                }
+                                else if (n != 2 || prt_str[strlen(prt_str)-1] != '\n') {
+                                    strcpy(answer, "RSA ERR\n");
+                                }
+                                else {
+                                    // TODO: fecth asset !!!!!!!!!!
+                                }
+                            }
+                            else if (!strcmp(code, "BID")) {
+                                if (!only_numbers(arg1) && strlen(arg1) != 6) {
+                                    strcpy(answer, "RBD ERR\n");
+                                }
+                                else if (!only_alphanumerical(arg2) && strlen(arg2) != 8) {
+                                    strcpy(answer, "RBD ERR\n");
+                                }
+                                else if (!only_numbers(arg3) && strlen(arg3) != 3) {
+                                    strcpy(answer, "RBD ERR\n");
+                                }
+                                if (!only_numbers(arg4) && strlen(arg4) > 5) {
+                                    strcpy(answer, "RBD ERR\n");
+                                }
+                                else if (n != 5 || prt_str[strlen(prt_str)-1] != '\n') {
+                                    strcpy(answer, "RBD ERR\n");
+                                }
+                                else {
+                                    k = create_bid(arg1, arg2, arg3, arg4);
+                                    strcpy(answer, "RBD");
+                                    if (k == NOK) {
+                                        strcat(answer, " NOK\n");
+                                    }
+                                    if (k == NLG) {
+                                        strcat(answer, " NLG\n");
+                                    }
+                                    if (k == ACC) {
+                                        strcat(answer, " ACC\n");
+                                    }
+                                    if (k == REF) {
+                                        strcat(answer, " REF\n");
+                                    }
+                                    if (k == ILG) {
+                                        strcat(answer, " ILG\n");
+                                    }
+                                }
                             }
 
                             /*

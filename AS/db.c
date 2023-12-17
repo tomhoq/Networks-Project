@@ -1188,8 +1188,6 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
                 return NOK;
             }
         }
-        
-        
         //falta criar ficheiro na pasta do user bidded
         return ACC;  //por ACC
     }
