@@ -219,11 +219,25 @@ int get_most_recent_aid(char buffer[5]) {
     return 1;
 }
 
-char* get_auction_path(char aid[5]) {
+char* get_asset_path(char aid[5]) {
     char *path = malloc(50 * sizeof(char));
     memset(path, '\0', 50);
     sprintf(path, "./AUCTIONS/%s/ASSET/", aid);
     return path;
+}
+
+char* get_asset_size(char aid[5]) {
+    char *path = get_asset_path(aid);
+    char *asset_name = get_asset_name(aid);
+    strcat(path, asset_name);
+    char *size = malloc(10 * sizeof(char));
+    memset(size, '\0', 10);
+    struct stat st;
+    stat(path, &st);
+    sprintf(size, "%ld", st.st_size);
+    free(path);
+    free(asset_name);
+    return size;
 }
 
 //devolve 1 se tiver ativo e 0 senao

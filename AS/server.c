@@ -282,7 +282,7 @@ int main (int argc, char* argv[]) {
                                         sprintf(answer, "%s %s\n", answer, open_aid);
                                         printf("%s\n", answer);
 
-                                        char *path = get_auction_path(open_aid);
+                                        char *path = get_asset_path(open_aid);
                                         strcat(path, arg6);
                                         printf("path: %s\n", path);
 
@@ -344,8 +344,6 @@ int main (int argc, char* argv[]) {
                                         strcat(answer, " ERR\n");
                                     }
                                 }
-                                
-
 
                             } else if (!strcmp(code, "CLS")) {
                                 if (!only_numbers(arg1) && strlen(arg1) != 6) {
@@ -397,6 +395,43 @@ int main (int argc, char* argv[]) {
                                 }
                                 else {
                                     // TODO: fecth asset !!!!!!!!!!
+                                    char asset_path[100];
+
+                                    if (!is_auction_active(arg1)) {
+                                        strcpy(answer, "RSA NOK\n");
+                                    }
+                                    else {
+                                        char *path = get_auction_path(arg1);
+                                        char *asset_name = get_asset_name(arg1);
+                                        char *asset_size = get_asset_size(arg1);
+                                        sprintf(asset_path, "%s%s", path, asset_name);
+                                        printf("%s\n",asset_path);
+                                        sprintf(answer, "RSA OK %s %lu", asset_name, asset_size);
+                                        printf("%s")
+                                        FILE *fp = fopen(asset_path, "r");
+                                        free(path);
+                                        free(asset_name);
+                                        if (fp == NULL) {
+                                            printf("Error opening file.\n");
+                                            memcpy(answer, "\0", sizeof(answer));
+                                            strcpy(answer, "RSA ERR\n");
+                                        }
+                                        write(sock, answer, strlen(answer));
+                                        /*while (1) {
+                                            memset(prt_str, '\0', sizeof(prt_str));
+                                            ret = fread(prt_str, 1, 127, fp);
+                                            if (ret <= 0) {
+                                                // Handle error or connection closure
+                                                break;
+                                            }
+                                            wr = write(sock, prt_str, ret);
+
+                                            if (wr != ret)  
+                                                printf("%d vs %d", wr, ret);
+                                        }     */                                      
+                                        
+                                    }
+                                    
                                 }
                             }
                             else if (!strcmp(code, "BID")) {
@@ -452,12 +487,13 @@ int main (int argc, char* argv[]) {
                             printf("Destination: (%s, %d)\n", host, port);
                             }
                             */
-
-                            ret = write(sock, answer, strlen(answer)+1);
-                            if (ret < strlen(answer))
-                                printf("Did not send all.\n");
-                            
-                            printf("-------------------------------------------------------\n"); 
+                            if (!strcmp(code, "SAS")) {
+                                ret = write(sock, answer, strlen(answer)+1);
+                                if (ret < strlen(answer))
+                                    printf("Warning: did not send the full message to socket.\n");
+                                
+                                printf("-------------------------------------------------------\n"); 
+                            }
 
                         }          
                         }
