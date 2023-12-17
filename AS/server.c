@@ -129,6 +129,7 @@ int main (int argc, char* argv[]) {
     }
 
     //printf("%s %d\n", ASport, verbose_mode);
+    //strcpy(ASport, "58011");
 
     // SERVER SECTION
     memset(&hints_udp,0,sizeof(hints_udp));
@@ -299,7 +300,7 @@ int main (int argc, char* argv[]) {
                                                 int stop = 0;
 
                                                 wr = fwrite(arg8, 1, size_arg8, fp);
-
+                                                //printf("wr vs size_arg8: %d vs %d\n", wr, size_arg8);
                                                 bytes_read += wr;
 
                                                 if (bytes_read < bytes_to_read) {

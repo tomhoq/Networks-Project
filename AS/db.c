@@ -203,7 +203,7 @@ int get_most_recent_aid(char buffer[5]) {
 
     memset(buffer, '\0', 5);
 
-    strcpy(auctions_dir, "./AUCTIONS/");
+    strcpy(auctions_dir, "./AS/AUCTIONS/");
 
     if (!directory_exists(auctions_dir)) {
         printf("ERROR WITH DB.\n");
@@ -222,7 +222,7 @@ int get_most_recent_aid(char buffer[5]) {
 char* get_auction_path(char aid[5]) {
     char *path = malloc(50 * sizeof(char));
     memset(path, '\0', 50);
-    sprintf(path, "./AUCTIONS/%s/ASSET/", aid);
+    sprintf(path, "./AS/AUCTIONS/%s/ASSET/", aid);
     return path;
 }
 
@@ -232,7 +232,7 @@ int check_validity(char *auction_id){
     char auction_directory[30];
     char end_file[50];
 
-    sprintf(auction_directory, "./AUCTIONS/%s/", auction_id);
+    sprintf(auction_directory, "./AS/AUCTIONS/%s/", auction_id);
     sprintf(start_file, "%sSTART_%s.txt", auction_directory, auction_id);   
 
     if (!directory_exists(auction_directory)) {
@@ -318,7 +318,7 @@ int is_auction_active(char *auction_id) {
     char auction_directory[30];
     char end_file[50];
 
-    sprintf(auction_directory, "./AUCTIONS/%s/", auction_id);
+    sprintf(auction_directory, "./AS/AUCTIONS/%s/", auction_id);
     sprintf(end_file, "%sEND_%s.txt", auction_directory, auction_id);
     //printf("auction_directory: %s\n", auction_directory);
     //printf("end_file: %s\n", end_file);
@@ -352,7 +352,7 @@ char* get_asset_name(char aid[5]) {
     char *asset_name = (char *) malloc(30 * sizeof(char));
     memset(asset_name, '\0', 30);
     
-    sprintf(auction_directory, "./AUCTIONS/%s/", aid);
+    sprintf(auction_directory, "./AS/AUCTIONS/%s/", aid);
     sprintf(start_file, "%sSTART_%s.txt", auction_directory, aid);   
 
     if (!directory_exists(auction_directory)) {
@@ -388,8 +388,8 @@ int is_bid_greater(char aid[5], char bid_value[10]){
     memset(bids_dir, '\0', sizeof(bids_dir));
     memset(start_file, '\0', sizeof(start_file)); 
 
-    sprintf(bids_dir, "./AUCTIONS/%s/BIDS/", aid);
-    sprintf(start_file, "./AUCTIONS/%s/START_%s.txt", aid, aid);
+    sprintf(bids_dir, "./AS/AUCTIONS/%s/BIDS/", aid);
+    sprintf(start_file, "./AS/AUCTIONS/%s/START_%s.txt", aid, aid);
 
     int number_files = scandir(bids_dir, &filelist, 0, alphasort);
     if (number_files <= 0)
@@ -437,10 +437,10 @@ int delete_auction(char aid[5], char uid[10]){
     int len;
     struct dirent **filelist;
 
-    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(user_directory, "./AS/USERS/%s/", uid);
     sprintf(hosted_file, "%sHOSTED/%s.txt", user_directory, aid);
 
-    sprintf(auction_file, "./AUCTIONS/%s/", aid);
+    sprintf(auction_file, "./AS/AUCTIONS/%s/", aid);
 
     delete_all(auction_file);
     delete_file(hosted_file);
@@ -468,7 +468,7 @@ int login_user(char username[10], char pass[10]) {
     }
 
     // Create the user's directory
-    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(user_directory, "./AS/USERS/%s/", username);
 
 
     // Check if the directory already exists
@@ -556,7 +556,7 @@ int logout(char username[10], char password[10]){
     char pass_file[50];
     char login_file[50];
 
-    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(user_directory, "./AS/USERS/%s/", username);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, username);
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
     if (!directory_exists(user_directory)) {
@@ -595,7 +595,7 @@ int unregister(char username[10], char password[10]){
     char pass_file[50];
     char login_file[50];
 
-    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(user_directory, "./AS/USERS/%s/", username);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, username);
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
 
@@ -631,7 +631,7 @@ int get_user_auctions(char username[10], auction list[1000]){
     int len;
     struct dirent **filelist;
 
-    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(user_directory, "./AS/USERS/%s/", username);
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
     sprintf(hosted_dir, "%sHOSTED/", user_directory);
 
@@ -669,7 +669,7 @@ int get_user_auctions(char username[10], auction list[1000]){
     
                     check_validity(id);  //closes auction if duration has finished
 
-                    sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                    sprintf(end_file, "./AS/AUCTIONS/%s/END_%s.txt", id, id);
                     if (file_exists(end_file)) {
                         list[i].active = 0;
                     } else {
@@ -702,7 +702,7 @@ int get_user_bids(char username[10], auction list[1000]){
     int len;
     struct dirent **filelist;
 
-    sprintf(user_directory, "./USERS/%s/", username);
+    sprintf(user_directory, "./AS/USERS/%s/", username);
     sprintf(login_file, "%s%s_login.txt", user_directory, username);
     sprintf(bidded_dir, "%sBIDDED/", user_directory);
 
@@ -741,7 +741,7 @@ int get_user_bids(char username[10], auction list[1000]){
                     check_validity(id);  //closes auction if duration has finished
 
 
-                    sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                    sprintf(end_file, "./AS/AUCTIONS/%s/END_%s.txt", id, id);
                     if (file_exists(end_file)) {
                         list[i].active = 0;
                     } else {
@@ -774,7 +774,7 @@ int get_all_auctions(auction list[1000]){
     int len;
     struct dirent **filelist;
 
-    strcpy(auctions_dir, "./AUCTIONS/");
+    strcpy(auctions_dir, "./AS/AUCTIONS/");
 
     if (!directory_exists(auctions_dir)) {
         printf("ERROR WITH DB.\n");
@@ -799,7 +799,7 @@ int get_all_auctions(auction list[1000]){
 
                 check_validity(id);  //closes auction if duration has finished
 
-                sprintf(end_file, "./AUCTIONS/%s/END_%s.txt", id, id);
+                sprintf(end_file, "./AS/AUCTIONS/%s/END_%s.txt", id, id);
                 if (file_exists(end_file)) {
                     list[i].active = 0;
                 } else {
@@ -834,7 +834,7 @@ int get_record(char aid[5], auction *a){
     int len;
     struct dirent **filelist;
 
-    strcpy(auctions_dir, "./AUCTIONS/");
+    strcpy(auctions_dir, "./AS/AUCTIONS/");
     sprintf(a_dir, "%s%s/", auctions_dir, aid);
 
     check_validity(aid);  //closes auction if duration has finished
@@ -965,7 +965,7 @@ int create_auction(char uid[8], char password[10], char auction_name[20], char s
     int len;
     struct dirent **filelist;
 
-    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(user_directory, "./AS/USERS/%s/", uid);
     sprintf(login_file, "%s%s_login.txt", user_directory, uid);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, uid);
     sprintf(hosted_dir, "%sHOSTED/", user_directory);
@@ -993,7 +993,7 @@ int create_auction(char uid[8], char password[10], char auction_name[20], char s
     }
 
     //check auctions------------------------------------------------
-    strcpy(auctions_dir, "./AUCTIONS/");
+    strcpy(auctions_dir, "./AS/AUCTIONS/");
 
     if (!directory_exists(auctions_dir)) {
         printf("ERROR WITH DB.\n");
@@ -1073,12 +1073,12 @@ int close_auction(char uid[10], char password[10], char aid[5]){
     char hosted_auction[70];
     char a_dir[25];
 
-    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(user_directory, "./AS/USERS/%s/", uid);
     sprintf(login_file, "%s%s_login.txt", user_directory, uid);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, uid);
     sprintf(hosted_dir, "%sHOSTED/", user_directory);
     sprintf(hosted_auction, "%s%s.txt", hosted_dir, aid);
-    sprintf(a_dir, "./AUCTIONS/%s/", aid);
+    sprintf(a_dir, "./AS/AUCTIONS/%s/", aid);
 
     //check login------------------------------------------------
     if (!directory_exists(user_directory)) {
@@ -1141,12 +1141,12 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
     int v = atoi(bid_value);
     int a = atoi(aid);
 
-    sprintf(user_directory, "./USERS/%s/", uid);
+    sprintf(user_directory, "./AS/USERS/%s/", uid);
     sprintf(login_file, "%s%s_login.txt", user_directory, uid);
     sprintf(pass_file, "%s%s_pass.txt", user_directory, uid);
     sprintf(hosted_dir, "%sHOSTED/", user_directory);
     sprintf(hosted_auction, "%s%s.txt", hosted_dir, aid);
-    sprintf(a_dir, "./AUCTIONS/%s/", aid);
+    sprintf(a_dir, "./AS/AUCTIONS/%s/", aid);
     sprintf(bids_dir, "%sBIDS/", a_dir);
     sprintf(bid_file, "%s%06d.txt", bids_dir, v);
     sprintf(user_bidded_file, "%sBIDDED/%03d.txt", user_directory, a);
@@ -1216,8 +1216,8 @@ int main() {
     char username[10] = "234234";
     char password[10] = "23423423";
     
-    //clear_directory("./USERS/");
-    //clear_directory("./AUCTIONS/");
+    //clear_directory("./AS/USERS/");
+    //clear_directory("./AS/AUCTIONS/");
     
     //printf("%d\n", create_bid("123123", "12312312", "001", "999999"));
 
@@ -1246,7 +1246,7 @@ int main() {
     free(s);
     */
 
-    //delete_all("./USERS/345345/");
+    //delete_all("./AS/USERS/345345/");
     //printf("create: %d\n", create_auction("345345", "34534534", "auchan", "100", "15", "file.txt"));
     //printf("%d\n", close_auction("345345", "34534534", "006"));
 
