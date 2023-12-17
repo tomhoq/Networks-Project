@@ -268,7 +268,7 @@ int main (int argc, char* argv[]) {
                                 else if (!only_numbers(arg7) || strlen(arg7) > 8) {
                                     strcpy(answer, "ROA ERR\n");
                                 }
-                                else if (n != 9 || (ret < 127 || prt_str[strlen(prt_str)-1] != '\n')) {
+                                else if (n != 9 || (ret < 127 && prt_str[strlen(prt_str)-1] != '\n')) {
                                     strcpy(answer, "ROA ERR\n");
                                 } 
                                 else {
@@ -433,19 +433,13 @@ int main (int argc, char* argv[]) {
                                 }
                                 else {
                                     char asset_path[100];
-
-                                    if (!is_auction_active(arg1)) {
-                                        strcpy(answer, "RSA NOK\n");
-                                        printf("Auction is not active.\n");
-                                    }
-                                    else {
-                                        char *path = get_auction_path(arg1);
+                                    char *path = get_auction_path(arg1);
                                         char *asset_name = get_asset_name(arg1);
                                         size_t asset_size = get_asset_size(arg1);
                                         sprintf(asset_path, "%s%s", path, asset_name);
                                         //printf("%s\n",asset_path);
 
-                                        sprintf(answer, "RSA OK %s %lu", asset_name, asset_size);
+                                        sprintf(answer, "RSA OK %s %lu ", asset_name, asset_size);
                                         printf("asdsad:  %s\n", answer); // DEBUG
                                         write(sock, answer, strlen(answer));
 
@@ -455,19 +449,17 @@ int main (int argc, char* argv[]) {
                                         if (fp == NULL) {
                                             printf("Error opening file.\n");
                                             memcpy(answer, "\0", sizeof(answer));
-                                            strcpy(answer, "RSA ERR\n");
+                                            strcpy(answer, "RSA NOK\n");
                                         }   
                                         else {     
                                             printf("Sending file...\n");
                                             while (1) {
-                                                int sock;
-
                                                 memset(prt_str, '\0', sizeof(prt_str));
                                                 ret = fread(prt_str, 1, 127, fp);
                                                 if (ret < 0) {
                                                     printf("Error reading file.\n");
                                                     memcpy(answer, "\0", sizeof(answer));
-                                                    strcpy(answer, "RSA ERR\n");
+                                                    strcpy(answer, "RSA NOK\n");
                                                     break;
                                                 }
                                                 if (ret == 0) {
@@ -478,8 +470,12 @@ int main (int argc, char* argv[]) {
                                                 if (wr != ret)  
                                                     printf("%d vs %d", wr, ret);
                                             } 
-                                        }                   
-                                    }
+                                        }
+                                        if (fclose(fp) != 0) {
+                                            printf("Error closing file.\n");
+                                            memcpy(answer, "\0", sizeof(answer));
+                                            strcpy(answer, "RSA NOK\n");
+                                        }
                                 }
                             }
                             else if (!strcmp(code, "BID")) {
@@ -536,10 +532,12 @@ int main (int argc, char* argv[]) {
                             }
                             */
                             printf("Sending: %s\n", answer);
-                            ret = write(sock, answer, strlen(answer)+1);
-                            if (ret < strlen(answer))
-                                printf("Did not send all.\n");
-                            
+                            if (strcmp(code, "SAS")) {
+                                ret = write(sock, answer, strlen(answer)+1);
+                                if (ret < strlen(answer))
+                                    printf("Did not send all.\n");
+                            }
+
                             printf("-------------------------------------------------------\n"); 
 
                         }          

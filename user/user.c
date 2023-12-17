@@ -16,7 +16,7 @@
 
 
 int main (int argc, char* argv[]) {
-    
+
     int n;
     char buffer[128], username[7],password[9];
     char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
