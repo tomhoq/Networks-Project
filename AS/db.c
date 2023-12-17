@@ -379,6 +379,37 @@ char* get_asset_name(char aid[5]) {
     }
 }
 
+char* get_asset_path(char aid[5]) {
+    char *path = malloc(50 * sizeof(char));
+    memset(path, '\0', 50);
+    sprintf(path, "./AS/AUCTIONS/%s/ASSET/", aid);
+    return path;
+}
+
+size_t get_asset_size(char aid[5]) {
+    char *path = get_asset_path(aid);
+    char *asset_name = get_asset_name(aid);
+    strcat(path, asset_name);
+    struct stat st;
+    size_t size;
+    if (!file_exists(path)) {
+        printf("Asset does not exist: %s\n", path);
+        return -1;
+    }
+    if (stat(path, &st) != 0) {
+        printf("Error getting file size.\n");
+        return -1;
+    }
+    size = st.st_size;
+    free(path);
+    free(asset_name);
+    return size;
+}
+
+
+
+
+
 int is_bid_greater(char aid[5], char bid_value[10]){
     char bids_dir[50];
     char start_file[60];

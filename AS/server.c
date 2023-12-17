@@ -432,7 +432,44 @@ int main (int argc, char* argv[]) {
                                     strcpy(answer, "RSA ERR\n");
                                 }
                                 else {
-                                    // TODO: fecth asset !!!!!!!!!!
+                                    char asset_path[100];
+
+                                    if (!is_auction_active(arg1)) {
+                                        strcpy(answer, "RSA NOK\n");
+                                        printf("Auction is not active.\n");
+                                    }
+                                    else {
+                                        char *path = get_auction_path(arg1);
+                                        char *asset_name = get_asset_name(arg1);
+                                        size_t asset_size = get_asset_size(arg1);
+                                        sprintf(asset_path, "%s%s", path, asset_name);
+                                        //printf("%s\n",asset_path);
+
+                                        sprintf(answer, "RSA OK %s %lu", asset_name, asset_size);
+                                        printf("asdsad:  %s\n", answer);
+                                        FILE *fp = fopen(asset_path, "r");
+                                        free(path);
+                                        free(asset_name);
+                                        if (fp == NULL) {
+                                            printf("Error opening file.\n");
+                                            memcpy(answer, "\0", sizeof(answer));
+                                            strcpy(answer, "RSA ERR\n");
+                                        }
+
+                                        write(sock, answer, strlen(answer));
+                                        /*while (1) {
+                                            memset(prt_str, '\0', sizeof(prt_str));
+                                            ret = fread(prt_str, 1, 127, fp);
+                                            if (ret <= 0) {
+                                                // Handle error or connection closure
+                                                break;
+                                            }
+                                            wr = write(sock, prt_str, ret);
+
+                                            if (wr != ret)  
+                                                printf("%d vs %d", wr, ret);
+                                        }     */                   
+                                    }
                                 }
                             }
                             else if (!strcmp(code, "BID")) {
