@@ -21,16 +21,15 @@ int main (int argc, char* argv[]) {
     char buffer[128], username[7],password[9];
     char function[13], arg1[20], arg2[20], arg3[20], arg4[20];
 
-    char ASIP[16]; // n tenho a certeza se 16 é o suficiente
+    char ASIP[16];
     char ASport[6];
 
-    //set username as row of \0
     memset(username, '\0', sizeof(username));
     memset(password, '\0', sizeof(password));
     memset(ASIP, '\0', sizeof(ASIP));
     memset(ASport, '\0', sizeof(ASport));
     
-    //input processing
+    //Input processing
     if (argc == 1) {
         strcpy(ASIP, "localhost");
         strcpy(ASport, PORT);
@@ -68,12 +67,7 @@ int main (int argc, char* argv[]) {
         exit(1);
     }
 
-    //printf("%s %s\n", ASIP, ASport);
-    //memset(ASIP, '\0', sizeof(ASIP));
-    //memset(ASport, '\0', sizeof(ASport));
-    //strcpy(ASport, "58011");
-    //strcpy(ASIP, TEJO);
-    //user input
+    //User input
     while (1) {
 
         memset(function, '\0', sizeof(function));
@@ -86,8 +80,6 @@ int main (int argc, char* argv[]) {
         fgets(buffer, 128, stdin);
         
         n = sscanf(buffer, "%s %s %s %s %s", function, arg1, arg2, arg3, arg4);
-
-        //avoid warning, ignore...
         if (n == 0) {}
 
         if (strcmp(function, "exit") == 0) {
@@ -201,6 +193,27 @@ int main (int argc, char* argv[]) {
                 printf("You are not logged in. Stop.\n");
                 continue;
             }
+            if (n != 3){
+                printf("Bid: invalid arguments.\n");
+                continue;
+            }
+            if (strlen(arg1) != 3) {
+                printf("Bid: invalid arguments.\n");
+                continue;
+            }
+            int i;
+            for (i = 0; i < strlen(arg2); i++) {
+                if (!isdigit(arg1[i])) {
+                    printf("Bid: invalid arguments.\n");
+                    continue;
+                }
+            }
+            for (i = 0; i < strlen(arg2); i++) {
+                if (!isdigit(arg2[i])) {
+                    printf("Bid: invalid arguments.\n");
+                    continue;
+                }
+            }
             if (make_bid(username, password, arg1, arg2, ASIP, ASport)==-1) {
                 printf("Error making bid.\n");
                 continue;
@@ -214,7 +227,7 @@ int main (int argc, char* argv[]) {
                 }
             }
             else
-                printf("You must specify an Auction ID.\n");
+                printf("Show asset: invalid arguments.\n");
         }
         else {
             printf("Invalid command.\n");

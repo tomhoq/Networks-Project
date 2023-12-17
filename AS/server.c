@@ -17,14 +17,6 @@
 #define PORT "58025"
 #define TEJO "tejo.tecnico.ulisboa.pt"
 
-void print_all_characters(const char *input_string) {
-    int i= 1;
-    while (*input_string != '\0') {
-        printf("Character %d: %c, ASCII: %d\n", i, *input_string, *input_string);
-        input_string++;
-        i++;
-    }
-}
 
 int only_numbers(char *str) {
     int i = 0;
@@ -58,7 +50,7 @@ int only_alphanumerical_and_extensions(char *str) {
 
 int main (int argc, char* argv[]) {
 
-    // socket variables
+    // Socket variables
     struct addrinfo hints_udp, *res_udp, *res_tcp, hints_tcp;
     struct sockaddr_in udp_useraddr, tcp_useraddr;
     socklen_t addrlen;
@@ -76,17 +68,16 @@ int main (int argc, char* argv[]) {
 
     char host[NI_MAXHOST], service[NI_MAXSERV];
 
-    char ASIP[20]; // n tenho a certeza se 16 é o suficiente
+    char ASIP[20];
     char ASport[8];
     int verbose_mode = 0;
 
-    //set username as row of \0
     memset(username, '\0', sizeof(username));
     memset(password, '\0', sizeof(password));
     memset(ASIP, '\0', sizeof(ASIP));
     memset(ASport, '\0', sizeof(ASport));
 
-    //input processing
+    // Input processing
     if (argc == 1) {
         strcpy(ASport, PORT);
     }
@@ -96,16 +87,16 @@ int main (int argc, char* argv[]) {
             strcpy(ASport, PORT);
         }
         else {
-            printf("Invalid arguments\n");
+            printf("Invalid initialization arguments.\n");
             exit(1);
         }
     }
     else if (argc == 3) {
         if (strcmp(argv[1], "-p") == 0) {
-            strcpy(ASport, argv[2]);  //falta verificar que argv[2] é um port number!!!!!!
+            strcpy(ASport, argv[2]);
         }
         else {
-            printf("Invalid arguments\n");
+            printf("Invalid initialization arguments.\n");
             exit(1);
         }
     }
@@ -115,21 +106,18 @@ int main (int argc, char* argv[]) {
             verbose_mode = 1;
         }
         else if (strcmp(argv[1], "-v") == 0 && strcmp(argv[2], "-p") == 0) {
-            strcpy(ASport, argv[2]);  //falta verificar que argv[2] é um port number!!!!!!
+            strcpy(ASport, argv[2]);
             verbose_mode = 1;
         }
         else {
-            printf("Invalid arguments\n");
+            printf("Invalid initialization arguments.\n");
             exit(1);
         }
     }
     else {
-        printf("Invalid arguments\n");
+        printf("Invalid initialization arguments.\n");
         exit(1);
     }
-
-    //printf("%s %d\n", ASport, verbose_mode);
-    //strcpy(ASport, "58011");
 
     // SERVER SECTION
     memset(&hints_udp,0,sizeof(hints_udp));
@@ -143,10 +131,10 @@ int main (int argc, char* argv[]) {
 
 
     if((errcode=getaddrinfo(NULL,ASport,&hints_udp,&res_udp))!=0)
-        exit(1);// On error
+        exit(1); // On error
 
     if((errcode=getaddrinfo(NULL,ASport,&hints_tcp,&res_tcp))!=0)
-        exit(1);// On error
+        exit(1); // On error
 
     ufd=socket(res_udp->ai_family,res_udp->ai_socktype,res_udp->ai_protocol);
     if(ufd==-1)
@@ -155,21 +143,22 @@ int main (int argc, char* argv[]) {
     tcp=socket(res_tcp->ai_family,res_tcp->ai_socktype,res_tcp->ai_protocol);
     if(tcp==-1)
         exit(1);
+
     if(bind(ufd,res_udp->ai_addr,res_udp->ai_addrlen)==-1)
     {
         perror("Bind error UDP server.\n");
-        exit(1);// On error
+        exit(1); // On error
     }
 
     if(bind(tcp,res_tcp->ai_addr,res_tcp->ai_addrlen)==-1)
     {
-        perror("Bind error UDP server.\n");
-        exit(1);// On error
+        perror("Bind error TCP server.\n");
+        exit(1); // On error
     }
     
     // Listen on the TCP socket
     if (listen(tcp, 5) == -1) {
-        perror("TCP socket listen failed");
+        perror("TCP socket listen failed.");
         exit(EXIT_FAILURE);
     }
 
@@ -182,48 +171,39 @@ int main (int argc, char* argv[]) {
     FD_SET(tcp,&inputs); // Set standard input channel on
     FD_SET(ufd,&inputs); // Set UDP channel on
 
-    //    printf("Size of fd_set: %d\n",sizeof(fd_set));
-    //    printf("Value of FD_SETSIZE: %d\n",FD_SETSIZE);
-
     while(1)
     {
         testfds=inputs; // Reload mask
-        //printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
         memset((void *)&timeout,0,sizeof(timeout));
         timeout.tv_sec=10;
 
         out_fds=select(FD_SETSIZE,&testfds,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *) &timeout);
         // testfds is now '1' at the positions that were activated
-        // printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
 
         memset(prt_str, '\0', sizeof(prt_str));
-        //Sprintf("%d\n",out_fds);
 
         switch(out_fds)
         {
             case 0:
-                //printf("\n ---------------Timeout event-----------------\n");
                 break;
             case -1:
                 perror("select");
                 exit(1);
             default:
+
+                // TCP Socket
                 if(FD_ISSET(tcp,&testfds))
                 {
-                    //fazer fork aqui
                     int sock = accept(tcp, NULL, NULL);
-                    
                     if (sock == -1) {
                         perror("TCP socket accept error.\n");
-                    
+
                     } else {
                         memset(prt_str, '\0', sizeof(prt_str));
                         addrlen = sizeof(tcp_useraddr);
                         ret = read(sock, prt_str, 127);
-                        printf("ret = %d\n", ret);
                         
                         if (ret>=0) {
-                            printf("---TCP socket: %s\n",prt_str); //debug
 
                             errcode=getnameinfo( (struct sockaddr *) &tcp_useraddr,
                                     addrlen,host,sizeof host, service,sizeof service,0);
@@ -243,7 +223,6 @@ int main (int argc, char* argv[]) {
 
                             n = sscanf(prt_str, "%s %s %s %s %s %s %s %s %[^\n]", code, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
                             int size_arg8 = 127 -(strlen(code) + strlen(arg1) + strlen(arg2) + strlen(arg3) + strlen(arg4) + strlen(arg5) + strlen(arg6) + strlen(arg7) + 8);
-                            //printf("size_arg8 = %d\n", size_arg8);
                             int k, i = 0;
 
                             if (!strcmp(code, "OPA")) {
@@ -273,7 +252,6 @@ int main (int argc, char* argv[]) {
                                 } 
                                 else {
                                     k = create_auction(arg1, arg2, arg3, arg4, arg5, arg6);
-                                    //printf("k = %d\n", k);
                                     strcpy(answer, "ROA");
                                     if (k == OK) {    
                                         char open_aid[5];
@@ -282,11 +260,9 @@ int main (int argc, char* argv[]) {
                                             delete_auction(open_aid, arg1);
                                             strcat(answer, " NOK");
 
-                                        }
-                                        else {
+                                        } else {
                                             char *path = get_auction_path(open_aid);
                                             strcat(path, arg6);
-                                            printf("path: %s\n", path);
 
                                             FILE *fp = fopen(path, "w+");
                                             if (fp == NULL) {
@@ -300,7 +276,6 @@ int main (int argc, char* argv[]) {
                                                 int stop = 0;
 
                                                 wr = fwrite(arg8, 1, size_arg8, fp);
-                                                //printf("wr vs size_arg8: %d vs %d\n", wr, size_arg8);
                                                 bytes_read += wr;
 
                                                 if (bytes_read < bytes_to_read) {
@@ -313,11 +288,9 @@ int main (int argc, char* argv[]) {
                                                             printf("Error reading from socket.\n");
                                                             break;
                                                         }
-                                                        //printf("%s\n", prt_str);
-                                                        // Write the received data to the file
-                                                        //printf("%lu %lu\n", strlen(prt_str), ret);
-                                                        wr = fwrite(prt_str, 1, ret, fp);
 
+                                                        // Write the received data to the file
+                                                        wr = fwrite(prt_str, 1, ret, fp);
                                                         if (wr != ret) {
                                                             printf("Error writing to file.\n");
                                                             stop = 1;
@@ -344,7 +317,6 @@ int main (int argc, char* argv[]) {
                                                     }
                                                 }
                                                 else if (bytes_read > bytes_to_read) {
-                                                    printf("File size is surpassing the one provided2:\n %d > %d\n", bytes_read, bytes_to_read);
                                                     stop = 1;
                                                 }
                                                 if (fclose(fp) != 0) {
@@ -360,10 +332,8 @@ int main (int argc, char* argv[]) {
                                                     strcat(answer, " OK");
 
                                                     sprintf(answer, "%s %s\n", answer, open_aid);
-                                                    //printf("%s\n", answer);
                                                 }
                                                 if (stop == 1) {
-                                                    printf("stopping\n");
                                                     delete_auction(open_aid, arg1);
                                                     memset(answer, '\0', sizeof(answer));
                                                     strcpy(answer, "ROA NOK\n");
@@ -427,9 +397,11 @@ int main (int argc, char* argv[]) {
                             else if (!strcmp(code, "SAS")) {
                                 if (!only_numbers(arg1) || strlen(arg1) != 3) {
                                     strcpy(answer, "RSA ERR\n");
+                                    write(sock, answer, strlen(answer));
                                 }
                                 else if (n != 2 || prt_str[strlen(prt_str)-1] != '\n') {
                                     strcpy(answer, "RSA ERR\n");
+                                    write(sock, answer, strlen(answer));
                                 }
                                 else {
                                     char asset_path[100];
@@ -437,10 +409,8 @@ int main (int argc, char* argv[]) {
                                         char *asset_name = get_asset_name(arg1);
                                         size_t asset_size = get_asset_size(arg1);
                                         sprintf(asset_path, "%s%s", path, asset_name);
-                                        //printf("%s\n",asset_path);
 
                                         sprintf(answer, "RSA OK %s %lu ", asset_name, asset_size);
-                                        printf("asdsad:  %s\n", answer); // DEBUG
                                         write(sock, answer, strlen(answer));
 
                                         FILE *fp = fopen(asset_path, "r"); 
@@ -467,14 +437,13 @@ int main (int argc, char* argv[]) {
                                                     break;
                                                 }
                                                 wr = write(sock, prt_str, ret);
-                                                if (wr != ret)  
-                                                    printf("%d vs %d", wr, ret);
+                                                
                                             } 
-                                        }
-                                        if (fclose(fp) != 0) {
-                                            printf("Error closing file.\n");
-                                            memcpy(answer, "\0", sizeof(answer));
-                                            strcpy(answer, "RSA NOK\n");
+                                            if (fclose(fp) != 0) {
+                                                printf("Error closing file.\n");
+                                                memcpy(answer, "\0", sizeof(answer));
+                                                strcpy(answer, "RSA NOK\n");
+                                            }
                                         }
                                 }
                             }
@@ -515,27 +484,8 @@ int main (int argc, char* argv[]) {
                                 }
                             }
 
-                            /*
-                            if (verbose_mode) {
-                            memset(code, '\0', sizeof(code));
-                            memset(arg1, '\0', sizeof(arg1));
-                            memset(arg2, '\0', sizeof(arg2));
-                            int j;
-                            j = sscanf(answer, "%s %s %30[^\n]", code, arg1, arg2);
-                            if (arg2[strlen(arg2)-1] == '\n')
-                                arg2[strlen(arg2)-1] = '\0';
-                            printf("Sending: %s\nStatus: %s\n", code, arg1);
-                            if (j == 3)
-                                printf("Data (first 30 bytes): %s\n", arg2);
-                            int port = ntohs(udp_useraddr.sin_port);
-                            printf("Destination: (%s, %d)\n", host, port);
-                            }
-                            */
-                            printf("Sending: %s\n", answer);
-                            if (strcmp(code, "SAS")) {
+                            if (strcmp(code, "SAS") != 0) {
                                 ret = write(sock, answer, strlen(answer)+1);
-                                if (ret < strlen(answer))
-                                    printf("Did not send all.\n");
                             }
 
                             printf("-------------------------------------------------------\n"); 
@@ -544,20 +494,17 @@ int main (int argc, char* argv[]) {
                         }
                     }
                 }
+
+                // UDP Socket
                 if(FD_ISSET(ufd,&testfds))
                 {
                     addrlen = sizeof(udp_useraddr);
                     ret=recvfrom(ufd,prt_str,89,0,(struct sockaddr *)&udp_useraddr,&addrlen);
-                    //printf("%d\n", ret);
                     if(ret>=0)
                     {
-                        //printf("---UDP socket: %s\n",prt_str);
                         errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,
                                 addrlen,host,sizeof host, service,sizeof service,0);
-                        
-                        //if(errcode==0)
-                            //printf("       Sent by [%s:%s]\n", host, service);
-                        
+                                                
                         char code[5], arg1[30], arg2[30], arg3[30], answer[6000], l[30];
                         memset(answer, '\0', sizeof(answer));
                         memset(code, '\0', sizeof(code));
@@ -567,11 +514,7 @@ int main (int argc, char* argv[]) {
                         memset(l, '\0', sizeof(l));
                         n = sscanf(prt_str, "%s %s %s %s", code, arg1, arg2, arg3);
 
-                        
-
                         int k, i = 0;
-                        //print_all_characters(prt_str);
-
                         if (!strcmp(code, "LST")) {
                             if (verbose_mode) {
                                 printf("Request: (%s)\n", code);
@@ -711,7 +654,6 @@ int main (int argc, char* argv[]) {
                             }
                             else {
                                 k = login_user(arg1, arg2);
-                                //printf("k = %d\n", k);
                                 if (k == OK) {
                                     strcpy(answer, "RLI OK\n");
                                 }
@@ -733,7 +675,6 @@ int main (int argc, char* argv[]) {
                             }
                             else {
                                 k = logout(arg1, arg2);
-                                //printf("k = %d\n", k);
                                 if (k == OK) {
                                     strcpy(answer, "RLO OK\n");
                                 }
@@ -755,7 +696,6 @@ int main (int argc, char* argv[]) {
                             }
                             else {
                                 k = unregister(arg1, arg2);
-                                //printf("k = %d\n", k);
                                 if (k == OK) {
                                     strcpy(answer, "RUR OK\n");
                                 }
@@ -789,8 +729,6 @@ int main (int argc, char* argv[]) {
                             printf("Destination: (%s, %d)\n", host, port);
                         }
                         ret = sendto(ufd, answer,strlen(answer)+1,0, (struct sockaddr *)&udp_useraddr, addrlen);
-                        if (ret < strlen(answer))
-                            printf("Did not send all\n");
                         
                         printf("-------------------------------------------------------\n");               
                         

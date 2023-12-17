@@ -191,7 +191,7 @@ int is_password_correct(const char * file_path, char *password){
         free(p);
         return 1;
     } else {
-        printf("Password is incorrect. %s vs %s\n", p, password);
+        printf("Password is incorrect.\n");
         free(p);
         return 0;
     }
@@ -1218,11 +1218,6 @@ int create_bid(char uid[10], char password[10], char aid[5], char bid_value[10])
         sprintf(buffer, "%s %s %s %s", uid, bid_value, date, secs);
         free(date);
         free(secs);
-
-        if (file_exists(bid_file)) {
-            printf("bid file already exists\n");
-        }
-
 
         printf("%s\n", bid_file);
 
